@@ -1,38 +1,586 @@
-.App {
-  text-align: center;
+/* ============================================ 全局样式 ============================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: #1a2a3a;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================ 头部 ============================================ */
+.header {
+  background-color: #ffffff;
+  padding: 32px 24px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #6c7a89;
+  font-size: 14px;
+}
+
+/* ============================================ 主容器 - 响应式布局 ============================================ */
+.main-container {
+  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+/* ============================================ 卡片通用样式 ============================================ */
+.input-card,
+.output-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 28px;
+  transition: box-shadow 0.2s;
+}
+
+.input-card {
+  flex: 1.2;
+  min-width: 320px;
+}
+
+.output-card {
+  flex: 0.9;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ============================================ 预览区域层级隔离 ============================================ */
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative; /* 关键：建立层叠上下文 */
+  z-index: 1;         /* 关键：限制内部子元素的 z-index 溢出，防止 2D 工具栏遮挡 3D */
+}
+
+.preview-section h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #4a5b6e;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.preview-header h3 {
+  margin-bottom: 0;
+}
+
+.download-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f1f3f5;
+  color: #4a5b6e;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover:not(:disabled) {
+  background-color: #2c3e50;
+  color: white;
+}
+
+.download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #f8f9fa;
+  border-radius: 16px;
+  border: 1.5px dashed #dee2e6;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  color: #9aaebf;
+  font-size: 14px;
+  gap: 12px;
+}
+
+.preview-placeholder.loading {
+  background-color: #f8f9fa;
+}
+
+/* ============================================ 图片预览容器（带缩放和拖动） ============================================ */
+.preview-image-container {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #f8f9fa;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border: 1px solid #e9ecef;
+}
+
+.image-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6px 12px;
+  border-radius: 40px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background-color: #ffffff;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #2c3e50;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn:hover {
+  background-color: #2c3e50;
   color: white;
+  transform: scale(1.05);
 }
 
-.App-link {
-  color: #61dafb;
+.zoom-info {
+  font-size: 12px;
+  color: #4a5b6e;
+  background: white;
+  padding: 0 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.image-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 0;
+  background-color: #f8f9fa;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.image-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  color: #9aaebf;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  border-radius: 20px;
+  margin: 0 auto;
+  width: fit-content;
+  backdrop-filter: blur(4px);
+}
+
+/* ============================================ 3D预览容器 ============================================ */
+/* 注意：这里不再写高度相关的CSS，完全交由 Model3DPreview.jsx 的内联 style 控制，避免冲突 */
+.model-preview-container:active {
+  cursor: grabbing;
+}
+
+/* ============================================ 草图组件样式 ============================================ */
+.sketch-section {
+  width: 100%;
+}
+
+.sketch-section h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #4a5b6e;
+  margin-bottom: 14px;
+  letter-spacing: 0.3px;
+}
+
+.canvas-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #f1f3f5;
+  color: #4a5b6e;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #e9ecef;
+}
+
+.action-btn.secondary {
+  color: #dc3545;
+}
+
+.action-btn.secondary:hover {
+  background-color: #fff5f5;
+}
+
+.upload-btn {
+  display: inline-block;
+  background-color: #2c3e50;
+  color: white;
+  cursor: pointer;
+}
+
+.upload-btn:hover {
+  background-color: #1e2f3e;
+}
+
+/* ============================================ 文本输入组件样式 ============================================ */
+.text-input-section {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.text-input-section h3 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #4a5b6e;
+  margin-bottom: 12px;
+  letter-spacing: 0.3px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 14px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  background-color: #ffffff;
+  color: #1a2a3a;
+  line-height: 1.5;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #2c3e50;
+}
+
+/* ============================================ 生成按钮 ============================================ */
+.generate-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.generate-btn:hover:not(:disabled) {
+  background-color: #1e2f3e;
+}
+
+.generate-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.generate-btn:disabled {
+  background-color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================================ 错误提示 ============================================ */
+.error-message {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-radius: 12px;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ============================================ 加载动画 ============================================ */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2c3e50;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+/* ============================================ 底部 ============================================ */
+.footer {
+  text-align: center;
+  padding: 24px;
+  border-top: 1px solid #e9ecef;
+  color: #8c9aa8;
+  font-size: 12px;
+}
+
+/* ============================================ 响应式设计 - 平板 (768px以下) ============================================ */
+@media (max-width: 768px) {
+  .header {
+    padding: 24px 16px;
   }
-  to {
-    transform: rotate(360deg);
+  .header h1 {
+    font-size: 24px;
+  }
+  .main-container {
+    padding: 20px 16px;
+    gap: 20px;
+  }
+  .input-card, .output-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+  .generate-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+  .preview-section h3, .sketch-section h3, .text-input-section h3 {
+    font-size: 14px;
+  }
+  .action-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+  .text-input {
+    padding: 12px;
+    font-size: 13px;
+    border-radius: 14px;
+  }
+  .image-toolbar {
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+  }
+  .tool-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .zoom-info {
+    font-size: 10px;
+    padding: 0 6px;
+  }
+  .download-btn {
+    padding: 4px 12px;
+    font-size: 11px;
+  }
+}
+
+/* ============================================ 响应式设计 - 手机 (480px以下) ============================================ */
+@media (max-width: 480px) {
+  .header {
+    padding: 20px 12px;
+  }
+  .header h1 {
+    font-size: 20px;
+  }
+  .main-container {
+    padding: 16px 12px;
+    gap: 16px;
+  }
+  .input-card, .output-card {
+    padding: 16px;
+    border-radius: 14px;
+    min-width: 280px;
+  }
+  .generate-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  .action-btn {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+  .text-input {
+    padding: 10px;
+    font-size: 12px;
+    border-radius: 12px;
+  }
+  .footer {
+    padding: 16px;
+    font-size: 10px;
+  }
+  .image-toolbar {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+  .tool-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  .zoom-info {
+    font-size: 9px;
+    padding: 0 4px;
+  }
+}
+
+/* ============================================ 暗色模式支持 (系统偏好) ============================================ */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1e24;
+    color: #e9ecef;
+  }
+  .header {
+    background-color: #24292e;
+    border-bottom-color: #2d333b;
+  }
+  .header p {
+    color: #8b949e;
+  }
+  .input-card, .output-card {
+    background-color: #24292e;
+  }
+  .preview-placeholder {
+    background-color: #1a1e24;
+    border-color: #2d333b;
+    color: #6e7681;
+  }
+  .preview-image-container {
+    background-color: #1a1e24;
+    border-color: #2d333b;
+  }
+  .text-input {
+    background-color: #1a1e24;
+    border-color: #2d333b;
+    color: #e9ecef;
+  }
+  .text-input:focus {
+    border-color: #58a6ff;
+  }
+  .action-btn {
+    background-color: #2d333b;
+    color: #c9d1d9;
+  }
+  .action-btn:hover {
+    background-color: #3d444d;
+  }
+  .action-btn.secondary {
+    color: #f85149;
+  }
+  .action-btn.secondary:hover {
+    background-color: #2d1a1a;
+  }
+  .upload-btn {
+    background-color: #3d444d;
+  }
+  .upload-btn:hover {
+    background-color: #4d555e;
+  }
+  .footer {
+    border-top-color: #2d333b;
+    color: #6e7681;
+  }
+  .image-toolbar {
+    background: rgba(36, 41, 46, 0.95);
+  }
+  .tool-btn {
+    background-color: #2d333b;
+    color: #c9d1d9;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  .tool-btn:hover {
+    background-color: #3d444d;
+  }
+  .zoom-info {
+    background-color: #2d333b;
+    color: #c9d1d9;
+  }
+  .image-hint {
+    background: rgba(36, 41, 46, 0.85);
+    color: #8b949e;
+  }
+  .download-btn {
+    background-color: #2d333b;
+    color: #c9d1d9;
+  }
+  .download-btn:hover:not(:disabled) {
+    background-color: #3d444d;
   }
 }
