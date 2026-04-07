@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
 const Model3DPreview = ({ modelUrl, loading }) => {
   const containerRef = useRef(null);
@@ -10,11 +11,9 @@ const Model3DPreview = ({ modelUrl, loading }) => {
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
   const modelRef = useRef(null);
-  const animationMixerRef = useRef(null);
 
   // 初始化 Three.js 场景
   useEffect(() => {
-    // 修复 ESLint 警告：提前缓存 ref 值
     const container = containerRef.current;
     if (!container) return;
 
@@ -77,13 +76,14 @@ const Model3DPreview = ({ modelUrl, loading }) => {
     gridHelper.position.y = -0.8;
     scene.add(gridHelper);
 
+    // 添加辅助轴线（可选，方便调试）
+    // const axesHelper = new THREE.AxesHelper(2);
+    // scene.add(axesHelper);
+
     // 动画循环
     let animationId;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      if (animationMixerRef.current) {
-        animationMixerRef.current.update(0.016);
-      }
       if (controlsRef.current) {
         controlsRef.current.update();
       }
@@ -110,11 +110,6 @@ const Model3DPreview = ({ modelUrl, loading }) => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationId);
       
-      if (animationMixerRef.current) {
-        animationMixerRef.current.stopAllAction();
-      }
-      
-      // 修复 ESLint 警告：使用提前缓存的 container 变量，而不是直接用 containerRef.current
       if (container && rendererRef.current) {
         container.removeChild(rendererRef.current.domElement);
       }
@@ -128,63 +123,94 @@ const Model3DPreview = ({ modelUrl, loading }) => {
     };
   }, []);
 
-  // 加载 GLB 模型
+  // 加载 OBJ 模型（支持 MTL 材质）
   useEffect(() => {
     if (!modelUrl || !sceneRef.current) return;
+    
     const scene = sceneRef.current;
     const controls = controlsRef.current;
     const camera = cameraRef.current;
     
+    // 移除旧模型
     if (modelRef.current) {
       scene.remove(modelRef.current);
       modelRef.current = null;
     }
-    if (animationMixerRef.current) {
-      animationMixerRef.current.stopAllAction();
-      animationMixerRef.current = null;
-    }
     
-    const loader = new GLTFLoader();
-    loader.load(
-      modelUrl, 
-      (gltf) => {
-        const model = gltf.scene;
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-        scene.add(model);
-        modelRef.current = model;
-        
-        if (gltf.animations && gltf.animations.length > 0) {
-          const mixer = new THREE.AnimationMixer(model);
-          animationMixerRef.current = mixer;
-          const action = mixer.clipAction(gltf.animations[0]);
-          action.play();
-        }
-        
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const distance = maxDim * 1.5;
-        
-        camera.position.set(distance, distance * 0.8, distance);
-        camera.lookAt(center);
-        if (controls) {
-          controls.target.copy(center);
-          controls.update();
-        }
-        
-        console.log('3D模型加载成功！尺寸:', size);
+    // 获取 OBJ 文件的基础路径（用于查找同目录下的 MTL 文件）
+    const basePath = modelUrl.substring(0, modelUrl.lastIndexOf('/') + 1);
+    const objFileName = modelUrl.substring(modelUrl.lastIndexOf('/') + 1);
+    const mtlUrl = basePath + objFileName.replace('.obj', '.mtl');
+    
+    const objLoader = new OBJLoader();
+    
+    // 先尝试加载 MTL 材质
+    const mtlLoader = new MTLLoader();
+    
+    mtlLoader.load(
+      mtlUrl,
+      (materials) => {
+        materials.preload();
+        objLoader.setMaterials(materials);
+        loadObj(objLoader, scene, controls, camera);
       },
       undefined,
       (error) => {
-        console.error('GLB模型加载失败:', error);
+        // MTL 文件不存在或加载失败，直接加载 OBJ（使用默认材质）
+        console.warn('MTL 材质加载失败，使用默认材质:', error);
+        loadObj(objLoader, scene, controls, camera);
       }
     );
+    
+    function loadObj(loader, scene, controls, camera) {
+      loader.load(
+        modelUrl,
+        (obj) => {
+          // 启用阴影
+          obj.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              
+              // 如果没有材质，给一个默认的材质
+              if (!child.material) {
+                child.material = new THREE.MeshStandardMaterial({
+                  color: 0x88aaff,
+                  roughness: 0.5,
+                  metalness: 0.1
+                });
+              }
+            }
+          });
+          
+          scene.add(obj);
+          modelRef.current = obj;
+          
+          // 调整相机视角以适应模型
+          const box = new THREE.Box3().setFromObject(obj);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const distance = maxDim * 1.5;
+          
+          camera.position.set(distance, distance * 0.8, distance);
+          camera.lookAt(center);
+          if (controls) {
+            controls.target.copy(center);
+            controls.update();
+          }
+          
+          console.log('OBJ 模型加载成功！尺寸:', size, '中心点:', center);
+        },
+        (xhr) => {
+          // 加载进度
+          console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        (error) => {
+          console.error('OBJ 模型加载失败:', error);
+        }
+      );
+    }
   }, [modelUrl]);
 
   if (loading) {

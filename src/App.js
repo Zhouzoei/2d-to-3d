@@ -12,7 +12,7 @@ function App() {
   
   const testImageUrl = '/assets/2d-character.png';
   // 确保能加载的在线测试模型
-  const testModelUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+  const testModelUrl = '/assets/3d-character.obj';
 
   const handleSketchChange = (dataURL) => {
     setSketchData(dataURL);
