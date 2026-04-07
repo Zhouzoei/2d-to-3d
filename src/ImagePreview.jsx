@@ -36,85 +36,53 @@ const ImagePreview = ({ imageUrl, loading }) => {
     setIsDragging(false);
   };
 
-  const handleDownload = () => {
-    if (!imageUrl) return;
-    const link = document.createElement('a');
-    link.download = '2d_character.png';
-    link.href = imageUrl;
-    link.click();
-  };
-
   if (loading) {
     return (
-      <>
-        <div className="preview-header">
-          <h3>2D Preview</h3>
-          <button className="download-btn" disabled>
-            Download
-          </button>
-        </div>
-        <div className="preview-placeholder loading">
-          <div className="spinner"></div>
-          <p>Generating 2D character...</p>
-        </div>
-      </>
+      <div className="preview-placeholder loading">
+        <div className="spinner"></div>
+        <p>Generating 2D character...</p>
+      </div>
     );
   }
   
   if (imageUrl) {
     return (
-      <>
-        <div className="preview-header">
-          <h3>2D Preview</h3>
-          <button className="download-btn" onClick={handleDownload}>
-            Download
-          </button>
+      <div className="preview-image-container">
+        <div className="image-toolbar">
+          <button className="tool-btn" onClick={handleZoomIn} title="放大">+</button>
+          <button className="tool-btn" onClick={handleZoomOut} title="缩小">-</button>
+          <button className="tool-btn" onClick={handleReset} title="重置">↺</button>
+          <span className="zoom-info">{Math.round(scale * 100)}%</span>
         </div>
-        <div className="preview-image-container">
-          <div className="image-toolbar">
-            <button className="tool-btn" onClick={handleZoomIn} title="放大">+</button>
-            <button className="tool-btn" onClick={handleZoomOut} title="缩小">-</button>
-            <button className="tool-btn" onClick={handleReset} title="重置">↺</button>
-            <span className="zoom-info">{Math.round(scale * 100)}%</span>
-          </div>
-          <div 
-            className="image-wrapper"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-          >
-            <img 
-              src={imageUrl} 
-              alt="Generated 2D character" 
-              className="preview-image"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                transition: isDragging ? 'none' : 'transform 0.1s ease'
-              }}
-            />
-          </div>
-          <div className="image-hint">
-            <span>鼠标拖拽移动 | 按钮缩放 | 下载</span>
-          </div>
+        <div 
+          className="image-wrapper"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+          <img 
+            src={imageUrl} 
+            alt="Generated 2D character" 
+            className="preview-image"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transition: isDragging ? 'none' : 'transform 0.1s ease'
+            }}
+          />
         </div>
-      </>
+        <div className="image-hint">
+          <span>鼠标拖拽移动 | 按钮缩放</span>
+        </div>
+      </div>
     );
   }
   
   return (
-    <>
-      <div className="preview-header">
-        <h3>2D Preview</h3>
-        <button className="download-btn" disabled>
-          Download
-        </button>
-      </div>
-      <div className="preview-placeholder">
-        <p>Waiting for generation</p>
-      </div>
-    </>
+    <div className="preview-placeholder">
+      <p>Waiting for generation</p>
+    </div>
   );
 };
 
