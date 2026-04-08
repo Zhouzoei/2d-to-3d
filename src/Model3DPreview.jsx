@@ -21,6 +21,42 @@ const Model3DPreview = ({ modelUrl, loading }) => {
   const [displayMode, setDisplayMode] = useState(DISPLAY_MODES.TEXTURED);
   const originalMaterialsRef = useRef(new Map());
 
+  // 切换显示模式
+  const switchDisplayMode = (mode) => {
+    if (!modelRef.current) return;
+    setDisplayMode(mode);
+    
+    modelRef.current.traverse((child) => {
+      if (child.isMesh) {
+        switch (mode) {
+          case DISPLAY_MODES.TEXTURED:
+            if (originalMaterialsRef.current.has(child.uuid)) {
+              child.material = originalMaterialsRef.current.get(child.uuid);
+            }
+            break;
+          case DISPLAY_MODES.WHITE:
+            if (!originalMaterialsRef.current.has(child.uuid)) {
+              originalMaterialsRef.current.set(child.uuid, child.material.clone());
+            }
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0xcccccc, roughness: 0.5, metalness: 0.1
+            });
+            break;
+          case DISPLAY_MODES.WIREFRAME:
+            if (!originalMaterialsRef.current.has(child.uuid)) {
+              originalMaterialsRef.current.set(child.uuid, child.material.clone());
+            }
+            child.material = new THREE.MeshBasicMaterial({
+              color: 0x00aaff, wireframe: true
+            });
+            break;
+          default:
+            break;
+        }
+      }
+    });
+  };
+
   // 初始化 Three.js 场景
   useEffect(() => {
     const container = containerRef.current;
@@ -107,46 +143,6 @@ const Model3DPreview = ({ modelUrl, loading }) => {
     };
   }, []);
 
-  // 切换显示模式
-  // 在 switchDisplayMode 函数的 switch 语句中添加 default
-const switchDisplayMode = (mode) => {
-  if (!modelRef.current) return;
-  setDisplayMode(mode);
-  
-  modelRef.current.traverse((child) => {
-    if (child.isMesh) {
-      switch (mode) {
-        case DISPLAY_MODES.TEXTURED:
-          if (originalMaterialsRef.current.has(child.uuid)) {
-            child.material = originalMaterialsRef.current.get(child.uuid);
-          }
-          break;
-        case DISPLAY_MODES.WHITE:
-          if (!originalMaterialsRef.current.has(child.uuid)) {
-            originalMaterialsRef.current.set(child.uuid, child.material.clone());
-          }
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xcccccc, roughness: 0.5, metalness: 0.1
-          });
-          break;
-        case DISPLAY_MODES.WIREFRAME:
-          if (!originalMaterialsRef.current.has(child.uuid)) {
-            originalMaterialsRef.current.set(child.uuid, child.material.clone());
-          }
-          child.material = new THREE.MeshBasicMaterial({
-            color: 0x00aaff, wireframe: true
-          });
-          break;
-        default:
-          // 默认使用贴图模式
-          if (originalMaterialsRef.current.has(child.uuid)) {
-            child.material = originalMaterialsRef.current.get(child.uuid);
-          }
-          break;
-      }
-    }
-  });
-};
   // 加载模型
   useEffect(() => {
     if (!modelUrl || !sceneRef.current) return;
@@ -219,31 +215,36 @@ const switchDisplayMode = (mode) => {
   
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div className="view-mode-toggle">
+      {/* 模式切换按钮 - 使用文字 */}
+      <div className="mode-toolbar">
         <button 
-          className={`mode-btn ${displayMode === 'textured' ? 'active' : ''}`}
+          className={`mode-btn-text ${displayMode === 'textured' ? 'active' : ''}`}
           onClick={() => switchDisplayMode('textured')}
+          title="贴图模式"
         >
-          贴图模式
+          贴图
         </button>
         <button 
-          className={`mode-btn ${displayMode === 'white' ? 'active' : ''}`}
+          className={`mode-btn-text ${displayMode === 'white' ? 'active' : ''}`}
           onClick={() => switchDisplayMode('white')}
+          title="白膜模式"
         >
-          白膜模式
+          白膜
         </button>
         <button 
-          className={`mode-btn ${displayMode === 'wireframe' ? 'active' : ''}`}
+          className={`mode-btn-text ${displayMode === 'wireframe' ? 'active' : ''}`}
           onClick={() => switchDisplayMode('wireframe')}
+          title="线框模式"
         >
-          线框模式
+          线框
         </button>
       </div>
+      
       <div 
         ref={containerRef} 
         style={{ 
           width: '100%', 
-          height: 'calc(100% - 52px)', 
+          height: '100%', 
           borderRadius: '16px', 
           overflow: 'hidden',
           cursor: 'grab'

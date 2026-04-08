@@ -117,16 +117,16 @@ function App() {
           <p className="hero-subtitle">手绘草图 + 文字描述 → 2D角色 → 3D模型</p>
         </div>
 
-        <div className="workspace">
-          {/* 左侧：创作区 */}
-          <div className="creation-panel">
+        {/* 上部区域：左侧画布 + 右侧控制区 */}
+        <div className="top-row">
+          {/* 左侧：画布区 */}
+          <div className="sketch-card">
             <div className="card-header">
               灵动画布
-              <span>Sketch + Prompt</span>
+              <span>Sketch</span>
             </div>
-            <div className="card-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className="card-content sketch-content">
               <SketchCanvasNative onSketchChange={handleSketchChange} />
-              <TextInput value={prompt} onChange={setPrompt} />
               <button 
                 className="generate-button" 
                 onClick={handleGenerate} 
@@ -137,10 +137,25 @@ function App() {
             </div>
           </div>
 
-          {/* 中间：控制区 */}
-          <div className="control-panel">
-            <div className="card">
-              <div className="card-header">风格预设<span>Presets</span></div>
+          {/* 右侧：控制区 */}
+          <div className="right-controls">
+            {/* 文字输入框 - 放在最上面 */}
+            <div className="compact-card prompt-card">
+              <div className="card-header">
+                文字描述
+                <span>Prompt</span>
+              </div>
+              <div className="card-content">
+                <TextInput value={prompt} onChange={setPrompt} />
+              </div>
+            </div>
+
+            {/* 风格预设 - 小卡片 */}
+            <div className="compact-card">
+              <div className="card-header">
+                风格预设
+                <span>Presets</span>
+              </div>
               <div className="card-content">
                 <div className="style-grid">
                   {['奇幻', '科幻', '可爱', '写实'].map(style => (
@@ -156,15 +171,18 @@ function App() {
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-header">高级参数<span>Fine-tune</span></div>
+            {/* 高级参数 - 小卡片 */}
+            <div className="compact-card">
+              <div className="card-header">
+                高级参数
+                <span>Fine-tune</span>
+              </div>
               <div className="card-content">
                 <div className="param-group">
                   <div className="param-row">
                     <span className="param-label">创意度</span>
                     <span className="param-value">{creativity.toFixed(2)}</span>
                   </div>
-                  <div className="param-desc">数值越高，生成结果越多样化</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -179,7 +197,6 @@ function App() {
                     <span className="param-label">几何细节</span>
                     <span className="param-value">{geometryDetail.toFixed(2)}</span>
                   </div>
-                  <div className="param-desc">网格分辨率与结构复杂度</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -194,7 +211,6 @@ function App() {
                     <span className="param-label">纹理质量</span>
                     <span className="param-value">{getTextureQualityText(textureQuality)}</span>
                   </div>
-                  <div className="param-desc">UV 分辨率与纹理细节层级</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -207,8 +223,12 @@ function App() {
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-header">生成状态<span>Live</span></div>
+            {/* 生成状态 - 小卡片 */}
+            <div className="compact-card">
+              <div className="card-header">
+                生成状态
+                <span>Live</span>
+              </div>
               <div className="card-content">
                 <div className="status-item">
                   <div className={`status-dot ${generationStatus.sketch === 'done' ? 'done' : generationStatus.sketch === 'active' ? 'active' : ''}`}></div>
@@ -221,7 +241,7 @@ function App() {
                   <div className={`status-dot ${generationStatus.character === 'active' ? 'active' : generationStatus.character === 'done' ? 'done' : ''}`}></div>
                   <div className="status-text">
                     <span className="title">2D 角色生成</span>
-                    <div>{generationStatus.character === 'active' ? 'Stable Diffusion 推理中...' : generationStatus.character === 'done' ? '生成完成' : '等待中'}</div>
+                    <div>{generationStatus.character === 'active' ? '推理中...' : generationStatus.character === 'done' ? '生成完成' : '等待中'}</div>
                   </div>
                 </div>
                 <div className="status-item">
@@ -237,38 +257,47 @@ function App() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* 右侧：展示区 */}
-          <div className="gallery-panel">
-            <div className="card">
-              <div className="card-header">灵韵画卷<span>2D Artwork</span></div>
-              <div className="card-content">
-                <div className="preview-image-area">
-                  <ImagePreview imageUrl={testImageUrl} loading={loading} />
-                </div>
-                <button className="download-btn" onClick={handleDownload2D} disabled={loading}>
-                  下载 2D 图片 ↓
-                </button>
-              </div>
+        {/* 下部区域：2D 预览 + 3D 预览 */}
+        <div className="bottom-row">
+          {/* 左下：2D 预览区 */}
+          <div className="preview-card">
+            <div className="card-header">
+              灵韵画卷
+              <span>2D Artwork</span>
             </div>
-
-            <div className="card">
-              <div className="card-header">造物之形<span>OBJ / MTL</span></div>
-              <div className="card-content">
-                <div className="model-container">
-                  <div className="model-viewer">
-                    <Model3DPreview modelUrl={testModelUrl} loading={loading} />
-                  </div>
-                </div>
-                <div className="info-text">鼠标拖拽旋转 · 滚轮缩放 · PBR 材质</div>
-                <button 
-                  className="download-btn" 
-                  onClick={handleDownload3D} 
-                  disabled={isDownloading || loading}
-                >
-                  {isDownloading ? '下载中...' : '下载 3D 模型 ↓'}
-                </button>
+            <div className="card-content preview-content">
+              <div className="preview-image-area">
+                <ImagePreview imageUrl={testImageUrl} loading={loading} />
               </div>
+              <div className="preview-hint">鼠标拖拽移动 | 按钮缩放</div>
+              <button className="download-btn" onClick={handleDownload2D} disabled={loading}>
+                下载 2D 图片 ↓
+              </button>
+            </div>
+          </div>
+
+          {/* 右下：3D 预览区 */}
+          <div className="preview-card">
+            <div className="card-header">
+              造物之形
+              <span>OBJ / MTL</span>
+            </div>
+            <div className="card-content preview-content">
+              <div className="model-container">
+                <div className="model-viewer">
+                  <Model3DPreview modelUrl={testModelUrl} loading={loading} />
+                </div>
+              </div>
+              <div className="preview-hint">鼠标拖拽旋转 | 滚轮缩放 | 右键平移</div>
+              <button 
+                className="download-btn" 
+                onClick={handleDownload3D} 
+                disabled={isDownloading || loading}
+              >
+                {isDownloading ? '下载中...' : '下载 3D 模型 ↓'}
+              </button>
             </div>
           </div>
         </div>

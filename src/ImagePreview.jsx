@@ -60,7 +60,7 @@ const ImagePreview = ({ imageUrl, loading }) => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', height: '100%' }}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', height: '100%', width: '100%' }}
         >
           <img 
             src={imageUrl} 
@@ -71,9 +71,6 @@ const ImagePreview = ({ imageUrl, loading }) => {
               transition: isDragging ? 'none' : 'transform 0.1s ease'
             }}
           />
-        </div>
-        <div className="image-hint">
-          <span>鼠标拖拽移动 | 按钮缩放</span>
         </div>
       </div>
     );

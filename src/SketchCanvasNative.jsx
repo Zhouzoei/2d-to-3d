@@ -3,10 +3,12 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 const SketchCanvasNative = ({ onSketchChange }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
+  const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [activeTool, setActiveTool] = useState('brush');
+  const [canvasSize, setCanvasSize] = useState({ width: 500, height: 500 });
   
   // 使用 ref 来保存最新的 history 和 historyIndex，避免闭包问题
   const historyRef = useRef([]);
@@ -17,6 +19,41 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     historyRef.current = history;
     historyIndexRef.current = historyIndex;
   }, [history, historyIndex]);
+
+  // 调整画布尺寸以适应容器
+  const resizeCanvas = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    // 获取容器宽度
+    const containerWidth = container.clientWidth;
+    // 设置画布尺寸为容器宽度（正方形）
+    const size = containerWidth;
+    
+    if (size !== canvasSize.width || size !== canvasSize.height) {
+      setCanvasSize({ width: size, height: size });
+    }
+  }, [canvasSize.width, canvasSize.height]);
+
+  // 监听容器尺寸变化
+  useEffect(() => {
+    resizeCanvas();
+    
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [resizeCanvas]);
 
   // 保存到历史 - 使用函数式更新避免依赖问题
   const saveToHistory = useCallback(() => {
@@ -37,7 +74,7 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     }
   }, [onSketchChange]);
 
-  // 获取坐标
+  // 获取坐标（适配画布实际尺寸）
   const getCoordinates = useCallback((e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -200,6 +237,9 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
+    canvas.width = canvasSize.width;
+    canvas.height = canvasSize.height;
+    
     const ctx = canvas.getContext('2d');
     
     ctx.lineCap = 'round';
@@ -246,14 +286,14 @@ const SketchCanvasNative = ({ onSketchChange }) => {
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 只在组件挂载时运行一次
+  }, [canvasSize]); // 当画布尺寸变化时重新初始化
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', gap: '8px' }}>
       <canvas
         ref={canvasRef}
-        width={500}
-        height={500}
+        width={canvasSize.width}
+        height={canvasSize.height}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={endDrawing}
@@ -271,7 +311,7 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         }}
       />
       
-      <div className="toolbar">
+      <div className="toolbar" style={{ marginTop: '0px' }}>
         <div className="tool-group">
           <button 
             className={`tool-btn ${activeTool === 'brush' ? 'active' : ''}`}
