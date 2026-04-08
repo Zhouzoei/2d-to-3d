@@ -38,20 +38,20 @@ const ImagePreview = ({ imageUrl, loading }) => {
 
   if (loading) {
     return (
-      <div className="preview-placeholder loading">
+      <div className="preview-placeholder">
         <div className="spinner"></div>
-        <p>Generating 2D character...</p>
+        <p>生成中...</p>
       </div>
     );
   }
   
   if (imageUrl) {
     return (
-      <div className="preview-image-container">
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         <div className="image-toolbar">
-          <button className="tool-btn" onClick={handleZoomIn} title="放大">+</button>
-          <button className="tool-btn" onClick={handleZoomOut} title="缩小">-</button>
-          <button className="tool-btn" onClick={handleReset} title="重置">↺</button>
+          <button className="tool-btn-icon" onClick={handleZoomIn} title="放大">+</button>
+          <button className="tool-btn-icon" onClick={handleZoomOut} title="缩小">−</button>
+          <button className="tool-btn-icon" onClick={handleReset} title="重置">↺</button>
           <span className="zoom-info">{Math.round(scale * 100)}%</span>
         </div>
         <div 
@@ -60,7 +60,7 @@ const ImagePreview = ({ imageUrl, loading }) => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', height: '100%' }}
         >
           <img 
             src={imageUrl} 
@@ -81,7 +81,13 @@ const ImagePreview = ({ imageUrl, loading }) => {
   
   return (
     <div className="preview-placeholder">
-      <p>Waiting for generation</p>
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '8px', opacity: 0.6 }}>
+        <rect x="3" y="3" width="18" height="18" rx="2" stroke="#2C5F6B" strokeWidth="1.2" fill="none"/>
+        <circle cx="8.5" cy="8.5" r="1.5" fill="#2C5F6B" opacity="0.6"/>
+        <path d="M21 15L16 10L5 21" stroke="#2C5F6B" strokeWidth="1.2" fill="none"/>
+      </svg>
+      <div style={{ fontSize: '13px', fontWeight: 500 }}>等待生成</div>
+      <div style={{ fontSize: '11px', marginTop: '6px' }}>AI 将生成 4K 角色图像</div>
     </div>
   );
 };

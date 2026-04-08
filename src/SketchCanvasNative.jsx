@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 
 const SketchCanvasNative = ({ onSketchChange }) => {
   const canvasRef = useRef(null);
@@ -6,28 +6,108 @@ const SketchCanvasNative = ({ onSketchChange }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [activeTool, setActiveTool] = useState('brush');
+  
+  // 使用 ref 来保存最新的 history 和 historyIndex，避免闭包问题
+  const historyRef = useRef([]);
+  const historyIndexRef = useRef(-1);
 
-  const saveToHistory = () => {
+  // 更新 refs
+  useEffect(() => {
+    historyRef.current = history;
+    historyIndexRef.current = historyIndex;
+  }, [history, historyIndex]);
+
+  // 保存到历史 - 使用函数式更新避免依赖问题
+  const saveToHistory = useCallback(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+    
     const imageData = canvas.toDataURL();
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(imageData);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndexRef.current + 1);
+      newHistory.push(imageData);
+      return newHistory;
+    });
+    setHistoryIndex(prev => prev + 1);
     
     if (onSketchChange) {
       onSketchChange(imageData);
     }
-  };
+  }, [onSketchChange]);
 
+  // 获取坐标
+  const getCoordinates = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX, clientY;
+    
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    
+    const boundedX = Math.max(0, Math.min(canvas.width, x));
+    const boundedY = Math.max(0, Math.min(canvas.height, y));
+    
+    return { x: boundedX, y: boundedY };
+  }, []);
+
+  // 开始绘画
+  const startDrawing = useCallback((e) => {
+    setIsDrawing(true);
+    const { x, y } = getCoordinates(e);
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }, [getCoordinates]);
+
+  // 绘画中
+  const draw = useCallback((e) => {
+    if (!isDrawing) return;
+    const { x, y } = getCoordinates(e);
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }, [isDrawing, getCoordinates]);
+
+  // 结束绘画
+  const endDrawing = useCallback(() => {
+    setIsDrawing(false);
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    ctx.beginPath();
+    saveToHistory();
+  }, [saveToHistory]);
+
+  // 撤销
   const undo = () => {
-    if (historyIndex > 0) {
-      const prevIndex = historyIndex - 1;
-      const prevImage = history[prevIndex];
+    if (historyIndexRef.current > 0) {
+      const prevIndex = historyIndexRef.current - 1;
+      const prevImage = historyRef.current[prevIndex];
       const img = new Image();
       img.onload = () => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas?.getContext('2d');
+        if (!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
         if (onSketchChange) {
@@ -39,20 +119,37 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     }
   };
 
+  // 清空画布
   const clearCanvas = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     saveToHistory();
   };
 
-  // 上传图片到画布
+  // 切换工具
+  const setTool = (tool) => {
+    setActiveTool(tool);
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    if (tool === 'brush') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = '#2C5F6B';
+      ctx.lineWidth = 3;
+    } else if (tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = 20;
+    }
+  };
+
+  // 上传图片
   const uploadImage = (event) => {
     const file = event.target.files[0];
     if (!file) return;
     
-    // 检查文件类型
     if (!file.type.match('image.*')) {
       alert('请上传图片文件（png, jpg, jpeg）');
       return;
@@ -63,13 +160,12 @@ const SketchCanvasNative = ({ onSketchChange }) => {
       const img = new Image();
       img.onload = () => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas?.getContext('2d');
+        if (!ctx || !canvas) return;
         
-        // 清空画布
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // 计算缩放比例，使图片适应画布
         const scale = Math.min(
           canvas.width / img.width,
           canvas.height / img.height
@@ -78,23 +174,20 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         const x = (canvas.width - img.width * scale) / 2;
         const y = (canvas.height - img.height * scale) / 2;
         
-        // 绘制图片
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
         
-        // 保存到历史
         saveToHistory();
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
-    
-    // 清空input，允许重复上传同一文件
     event.target.value = '';
   };
 
   // 下载草图
   const downloadSketch = () => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const dataURL = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = 'sketch.png';
@@ -102,23 +195,32 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     link.click();
   };
 
+  // 初始化画布
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+    
     const ctx = canvas.getContext('2d');
     
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 3;
-    ctx.strokeStyle = '#2c3e50';
+    ctx.strokeStyle = '#2C5F6B';
     
     ctxRef.current = ctx;
     
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    saveToHistory();
+    // 初始化时保存空白画布到历史
+    const initialData = canvas.toDataURL();
+    setHistory([initialData]);
+    setHistoryIndex(0);
+    if (onSketchChange) {
+      onSketchChange(initialData);
+    }
 
-    // 触摸事件支持
+    // 触摸事件
     const handleTouchStart = (e) => {
       e.preventDefault();
       startDrawing(e);
@@ -143,60 +245,11 @@ const SketchCanvasNative = ({ onSketchChange }) => {
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
-
-  const getCoordinates = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    let clientX, clientY;
-    
-    if (e.touches) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    
-    const boundedX = Math.max(0, Math.min(canvas.width, x));
-    const boundedY = Math.max(0, Math.min(canvas.height, y));
-    
-    return { x: boundedX, y: boundedY };
-  };
-
-  const startDrawing = (e) => {
-    setIsDrawing(true);
-    const { x, y } = getCoordinates(e);
-    ctxRef.current.beginPath();
-    ctxRef.current.moveTo(x, y);
-    ctxRef.current.lineTo(x, y);
-    ctxRef.current.stroke();
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const { x, y } = getCoordinates(e);
-    ctxRef.current.lineTo(x, y);
-    ctxRef.current.stroke();
-    ctxRef.current.beginPath();
-    ctxRef.current.moveTo(x, y);
-  };
-
-  const endDrawing = () => {
-    setIsDrawing(false);
-    ctxRef.current.beginPath();
-    saveToHistory();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 只在组件挂载时运行一次
 
   return (
-    <div className="sketch-section">
-      <h3>Draw Sketch</h3>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <canvas
         ref={canvasRef}
         width={500}
@@ -209,33 +262,59 @@ const SketchCanvasNative = ({ onSketchChange }) => {
           width: '100%',
           height: 'auto',
           aspectRatio: '1 / 1',
-          border: '1.5px solid #e2e8f0',
           backgroundColor: 'white',
-          borderRadius: '16px',
+          borderRadius: '20px',
           cursor: 'crosshair',
           touchAction: 'none',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          border: '1px solid rgba(172, 229, 238, 0.6)'
         }}
       />
-      <div className="canvas-actions">
-        <label className="action-btn upload-btn">
-          Upload
-          <input
-            type="file"
-            accept="image/png, image/jpeg, image/jpg"
-            onChange={uploadImage}
-            style={{ display: 'none' }}
-          />
-        </label>
-        <button className="action-btn" onClick={downloadSketch}>
-          Download
-        </button>
-        <button className="action-btn secondary" onClick={clearCanvas}>
-          Clear
-        </button>
-        <button className="action-btn" onClick={undo}>
-          Undo
-        </button>
+      
+      <div className="toolbar">
+        <div className="tool-group">
+          <button 
+            className={`tool-btn ${activeTool === 'brush' ? 'active' : ''}`}
+            onClick={() => setTool('brush')}
+          >
+            画笔
+          </button>
+          <button 
+            className={`tool-btn ${activeTool === 'eraser' ? 'active' : ''}`}
+            onClick={() => setTool('eraser')}
+          >
+            橡皮
+          </button>
+          <button 
+            className="tool-btn"
+            onClick={clearCanvas}
+          >
+            清空
+          </button>
+        </div>
+        <div className="tool-group">
+          <label className="tool-btn" style={{ cursor: 'pointer' }}>
+            上传图片
+            <input
+              type="file"
+              accept="image/png, image/jpeg, image/jpg"
+              onChange={uploadImage}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button 
+            className="tool-btn"
+            onClick={downloadSketch}
+          >
+            下载
+          </button>
+          <button 
+            className="tool-btn"
+            onClick={undo}
+          >
+            撤销
+          </button>
+        </div>
       </div>
     </div>
   );
