@@ -337,12 +337,14 @@ body {
   width: 100%;
   border: 1px solid var(--color-primary-border-soft);
   border-radius: 20px;
-  padding: 20px 16px;
+  padding: 14px 18px;        /* 增加内边距也会增加高度 */
   font-size: 14px;
   font-family: 'Inter', monospace;
   background: var(--bg-input);
   color: var(--text-input);
-  resize: vertical;
+  resize: vertical;          /* 用户可手动拉伸 */
+  min-height: 150px;         
+  line-height: 1.5;          /* 舒适的行高 */
 }
 
 .prompt-input:focus {
