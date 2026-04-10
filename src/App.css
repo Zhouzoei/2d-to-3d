@@ -1,4 +1,102 @@
 /* ============================================
+   CSS 变量定义（颜色系统）
+   ============================================ */
+/* ============================================
+   CSS 变量定义（颜色系统）
+   ============================================ */
+:root {
+  /* ========================================
+     主色调 - 青色系（用于强调、边框、装饰）
+     ======================================== */
+  --color-primary: #151634;           /* 主色：深青色 - 用于重要文字、激活状态、图标 */
+  --color-primary-dark: #1A4A55;       /* 主色深色：更深青色 - 用于标题渐变、hover状态 */
+  --color-primary-light: #c17bd1;      /* 主色浅色：浅青色 - 用于滑块、进度条、光效 */
+  --color-primary-mid: #19333b;        /* 主色中调：中青色 - 用于次要文字、标签、占位符 */
+  
+  /* 背景色变量（青色系半透明） */
+  --color-primary-bg: rgba(207, 244, 249, 0.731);      /* 青色背景 - 用于滑块轨道 */
+  --color-primary-bg-light: rgba(204, 238, 241, 0.856); /* 浅青色背景 - 用于工具组、风格芯片 */
+  --color-primary-bg-soft: rgba(251, 209, 245, 0.518);  /* 柔和青色背景 - 用于卡片标签 */
+  --color-primary-bg-mid: rgba(139, 205, 218, 0.788);    /* 中调青色背景 - 用于按钮hover、激活状态 */
+  --color-primary-bg-strong: rgba(233, 166, 239, 0.495); /* 强青色背景 - 用于激活的风格芯片 */
+  --color-primary-bg-heavy: rgba(205, 218, 238, 0.8);  /* 重青色背景 - 用于模式按钮激活 */
+  
+  /* 边框颜色 */
+  --color-primary-border: rgba(172, 229, 238, 0.5);     /* 主边框 - 卡片边框 */
+  --color-primary-border-light: rgba(172, 229, 238, 0.692); /* 浅边框 - 卡片头部下边框 */
+  --color-primary-border-soft: rgba(172, 229, 238, 0.6);  /* 柔和边框 - 输入框、画布边框 */
+  --color-primary-border-subtle: rgba(200, 238, 244, 0.731); /* 细微边框 - 状态项分隔线 */
+  --color-primary-border-faint: rgba(172, 229, 238, 0.3);  /* 微弱边框 - 预览提示上边框 */
+  
+  /* ========================================
+     区域背景色 - 三种不同的蓝色（用于卡片区域区分）
+     ======================================== */
+  /* 区域1：画布区域（左侧）- 淡蓝色 */
+  --bg-sketch-area: rgba(222, 233, 245, 0.65);    /* 画布卡片背景 */
+  --border-sketch-area: rgba(100, 150, 200, 0.5);  /* 画布卡片边框 */
+  
+  /* 区域2：右侧参数区域 - 灰蓝色 */
+  --bg-params-area: rgba(139, 181, 235, 0.65);     /* 参数卡片背景 */
+  --border-params-area: rgba(185, 205, 235, 0.5);  /* 参数卡片边框 */
+  
+  /* 区域3：底部预览区域 - 浅蓝色带紫调 */
+  --bg-preview-area: rgba(168, 190, 237, 0.65);    /* 预览卡片背景 */
+  --border-preview-area: rgba(199, 222, 245, 0.5); /* 预览卡片边框 */
+  
+  /* ========================================
+     点缀色 - 紫色系（用于强调、完成状态、焦点）
+     ======================================== */
+  --color-accent: #DDA0DD;                 /* 点缀色：淡紫色 - 用于完成状态点、输入框焦点边框 */
+  --color-accent-dark: #8B6B8B;            /* 点缀色深色：紫灰色 - 用于参数数值文字 */
+  --color-accent-bg: rgba(221, 160, 221, 0.4);       /* 紫色背景 - 按钮渐变组成部分 */
+  --color-accent-bg-strong: rgba(221, 160, 221, 0.6); /* 强紫色背景 - 按钮hover渐变 */
+  --color-accent-glow: rgba(221, 160, 221, 0.15);     /* 紫色光晕 - 输入框focus外发光 */
+  
+  /* ========================================
+     背景色（页面底层、卡片通用背景）
+     ======================================== */
+  --bg-body: #deebfb;                     /* 页面主背景色 - 浅蓝色 */
+  --bg-card: rgba(240, 244, 250, 0.65);   /* 通用卡片背景（毛玻璃效果） */
+  --bg-card-solid: rgba(240, 244, 250, 0.9); /* 实色卡片背景 - 用于工具栏 */
+  --bg-preview: rgba(248, 250, 252, 0.7); /* 预览区域内部背景 */
+  --bg-input: rgba(255, 255, 255, 0.6);   /* 输入框背景 */
+  --bg-badge: rgba(97, 152, 241, 0.4);    /* 徽章背景 */
+  
+  /* ========================================
+     文字颜色系统（重点：所有文字颜色都在这里）
+     ======================================== */
+  --text-dark: #08131f;           /* 最深文字 - body正文、暗色模式切换后的文字 */
+  --text-primary: #2C5F6B;        /* 主要文字色 - 标题、卡片头部、按钮文字、激活状态 */
+  --text-secondary: #4A6F7A;      /* 次要文字色 - 副标题、标签、状态文字、工具按钮 */
+  --text-muted: rgba(22, 48, 54, 0.5); /* 弱化文字 - 预览提示、占位符文字 */
+  --text-input: #0f1923;          /* 输入框文字 - prompt输入框内的文字 */
+  
+  /* ========================================
+     渐变色（标题、按钮、进度条）
+     ======================================== */
+  --gradient-title: linear-gradient(135deg, #2C5F6B 0%, #1A4A55 40%, #8B6B8B 70%, #ACE5EE 100%); /* 标题渐变 */
+  --gradient-button: linear-gradient(105deg, rgba(172, 229, 238, 0.5) 0%, rgba(221, 160, 221, 0.4) 100%); /* 按钮渐变 */
+  --gradient-button-hover: linear-gradient(105deg, rgba(172, 229, 238, 0.7) 0%, rgba(221, 160, 221, 0.6) 100%); /* 按钮hover渐变 */
+  --gradient-progress: linear-gradient(90deg, #cbecf1, #f4b1f4); /* 进度条渐变 */
+  --gradient-bg: radial-gradient(circle at 0% 0%, rgba(111, 203, 243, 0.35) 0%, transparent 60%),
+                  radial-gradient(circle at 100% 100%, rgba(228, 123, 181, 0.2) 0%, transparent 60%); /* 页面背景光晕 */
+  
+  /* ========================================
+     暗色模式变量
+     ======================================== */
+  --bg-dark-body: #1a1e2c;               /* 暗色模式页面背景 */
+  --text-dark-light: #e9ecef;            /* 暗色模式文字（亮色） */
+  --bg-dark-card: rgba(30, 35, 45, 0.7); /* 暗色模式卡片背景 */
+  --bg-dark-input: rgba(20, 25, 35, 0.6); /* 暗色模式输入框背景 */
+  --text-dark-muted: #6e7681;            /* 暗色模式弱化文字 */
+  
+  /* 暗色模式区域颜色 */
+  --bg-sketch-area-dark: rgba(40, 60, 90, 0.7);    /* 暗色模式画布区域 */
+  --bg-params-area-dark: rgba(35, 50, 80, 0.7);    /* 暗色模式参数区域 */
+  --bg-preview-area-dark: rgba(45, 55, 85, 0.7);   /* 暗色模式预览区域 */
+}
+
+/* ============================================
    全局样式
    ============================================ */
 * {
@@ -9,8 +107,8 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Serif SC', sans-serif;
-  background: #DCE5F0;
-  color: #1A2C3E;
+  background: var(--bg-body);
+  color: var(--text-dark);
   line-height: 1.4;
   min-height: 100vh;
 }
@@ -19,8 +117,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 0% 0%, rgba(172, 229, 238, 0.35) 0%, transparent 60%),
-              radial-gradient(circle at 100% 100%, rgba(221, 160, 221, 0.2) 0%, transparent 60%);
+  background: var(--gradient-bg);
 }
 
 .main-content {
@@ -43,16 +140,16 @@ body {
 
 .badge {
   display: inline-block;
-  background: rgba(172, 229, 238, 0.4);
+  background: var(--bg-badge);
   backdrop-filter: blur(4px);
   padding: 4px 16px;
   border-radius: 60px;
   font-size: 11px;
   font-weight: 500;
-  color: #2C5F6B;
+  color: var(--color-primary);
   letter-spacing: 1px;
   margin-bottom: 16px;
-  border: 0.5px solid rgba(172, 229, 238, 0.7);
+  border: 0.5px solid var(--color-primary-border-soft);
 }
 
 .hero-title {
@@ -61,7 +158,7 @@ body {
   letter-spacing: 0.1em;
   font-family: 'Noto Serif SC', serif;
   margin-bottom: 12px;
-  background: linear-gradient(135deg, #2C5F6B 0%, #1A4A55 40%, #8B6B8B 70%, #ACE5EE 100%);
+  background: var(--gradient-title);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -69,7 +166,7 @@ body {
 
 .hero-subtitle {
   font-size: 14px;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
   max-width: 500px;
   margin: 0 auto;
   line-height: 1.5;
@@ -85,16 +182,17 @@ body {
   align-items: stretch;
 }
 
-/* 左侧画布卡片 - 自动撑满高度 */
+/* 左侧画布卡片 - 使用区域1颜色（淡蓝色） */
 .sketch-card {
   flex: 2;
-  background: rgba(240, 244, 250, 0.65);
+  background: var(--bg-sketch-area);
   backdrop-filter: blur(8px);
   border-radius: 24px;
-  border: 1px solid rgba(172, 229, 238, 0.5);
+  border: 2px solid var(--border-sketch-area);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(100, 150, 200, 0.15);
 }
 
 .sketch-content {
@@ -118,26 +216,26 @@ body {
 }
 
 /* ============================================
-   卡片通用样式
+   卡片通用样式 - 右侧参数卡片使用区域2颜色（灰蓝色）
    ============================================ */
 .card-header {
   padding: 12px 16px 8px 16px;
   font-weight: 600;
   font-size: 14px;
-  color: #2C5F6B;
+  color: var(--color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(172, 229, 238, 0.4);
+  border-bottom: 1px solid var(--color-primary-border-light);
 }
 
 .card-header span {
-  background: rgba(172, 229, 238, 0.35);
+  background: var(--color-primary-bg-soft);
   padding: 2px 10px;
   border-radius: 30px;
   font-size: 10px;
   font-weight: 500;
-  color: #2C5F6B;
+  color: var(--color-primary);
 }
 
 .card-content {
@@ -145,13 +243,14 @@ body {
 }
 
 .compact-card {
-  background: rgba(240, 244, 250, 0.65);
+  background: var(--bg-params-area);
   backdrop-filter: blur(8px);
   border-radius: 20px;
-  border: 1px solid rgba(172, 229, 238, 0.5);
+  border: 2px solid var(--border-params-area);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(80, 120, 180, 0.1);
 }
 
 /* 文字输入卡片 */
@@ -168,7 +267,7 @@ body {
   background-color: white;
   border-radius: 16px;
   cursor: crosshair;
-  border: 1px solid rgba(172, 229, 238, 0.6);
+  border: 1px solid var(--color-primary-border-soft);
 }
 
 /* 画布工具栏 - 统一字体 */
@@ -183,7 +282,7 @@ body {
 .tool-group {
   display: flex;
   gap: 5px;
-  background: rgba(172, 229, 238, 0.25);
+  background: var(--color-primary-bg-light);
   padding: 4px;
   border-radius: 48px;
 }
@@ -196,14 +295,14 @@ body {
   font-size: 12px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tool-btn.active {
-  background: rgba(172, 229, 238, 0.6);
-  color: #2C5F6B;
+  background: var(--color-primary-bg-mid);
+  color: var(--color-primary);
 }
 
 /* ============================================
@@ -212,20 +311,20 @@ body {
 .generate-button {
   width: 100%;
   margin-top: 12px;
-  background: linear-gradient(105deg, rgba(172, 229, 238, 0.5) 0%, rgba(221, 160, 221, 0.4) 100%);
-  border: 1px solid rgba(172, 229, 238, 0.7);
+  background: var(--gradient-button);
+  border: 1px solid var(--color-primary-bg-strong);
   padding: 10px 18px;
   border-radius: 44px;
   font-weight: 600;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
-  color: #2C5F6B;
+  color: var(--color-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .generate-button:hover:not(:disabled) {
-  background: linear-gradient(105deg, rgba(172, 229, 238, 0.7) 0%, rgba(221, 160, 221, 0.6) 100%);
+  background: var(--gradient-button-hover);
   transform: translateY(-1px);
 }
 
@@ -239,20 +338,20 @@ body {
    ============================================ */
 .prompt-input {
   width: 100%;
-  border: 1px solid rgba(172, 229, 238, 0.6);
+  border: 1px solid var(--color-primary-border-soft);
   border-radius: 20px;
   padding: 12px 16px;
   font-size: 13px;
   font-family: 'Inter', monospace;
-  background: rgba(255, 255, 255, 0.6);
-  color: #1A2C3E;
+  background: var(--bg-input);
+  color: var(--text-input);
   resize: vertical;
 }
 
 .prompt-input:focus {
   outline: none;
-  border-color: #DDA0DD;
-  box-shadow: 0 0 0 3px rgba(221, 160, 221, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
 /* ============================================
@@ -265,25 +364,25 @@ body {
 }
 
 .style-chip {
-  background: rgba(172, 229, 238, 0.25);
-  border: 1px solid rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg-light);
+  border: 1px solid var(--color-primary-border);
   border-radius: 30px;
   padding: 6px 5px;
   text-align: center;
   font-size: 12px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
-  color: #2C5F6B;
+  color: var(--color-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .style-chip:hover {
-  background: rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg-mid);
 }
 
 .style-chip.active {
-  background: rgba(172, 229, 238, 0.7);
+  background: var(--color-primary-bg-strong);
 }
 
 /* ============================================
@@ -308,12 +407,12 @@ body {
   font-size: 12px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
 }
 
 .param-value {
   font-size: 11px;
-  color: #8B6B8B;
+  color: var(--color-accent-dark);
   font-weight: 600;
   font-family: 'Inter', sans-serif;
 }
@@ -322,7 +421,7 @@ input[type="range"] {
   width: 100%;
   height: 4px;
   border-radius: 5px;
-  background: rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg);
   -webkit-appearance: none;
 }
 
@@ -331,7 +430,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ACE5EE;
+  background: var(--color-primary-light);
   cursor: pointer;
   border: none;
 }
@@ -344,7 +443,7 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(172, 229, 238, 0.2);
+  border-bottom: 1px solid var(--color-primary-border-subtle);
 }
 
 .status-item:last-child {
@@ -355,34 +454,34 @@ input[type="range"]::-webkit-slider-thumb {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(172, 229, 238, 0.6);
+  background: var(--color-primary-bg-mid);
 }
 
 .status-dot.active {
-  background: #ACE5EE;
-  box-shadow: 0 0 6px #ACE5EE;
+  background: var(--color-primary-light);
+  box-shadow: 0 0 6px var(--color-primary-light);
 }
 
 .status-dot.done {
-  background: #DDA0DD;
+  background: var(--color-accent);
 }
 
 .status-text {
   flex: 1;
   font-size: 11px;
   font-family: 'Inter', sans-serif;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
 }
 
 .status-text .title {
   font-weight: 600;
-  color: #2C5F6B;
+  color: var(--color-primary);
   display: block;
 }
 
 .progress-bar {
   height: 3px;
-  background: rgba(172, 229, 238, 0.25);
+  background: var(--color-primary-bg-light);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 8px;
@@ -390,11 +489,11 @@ input[type="range"]::-webkit-slider-thumb {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ACE5EE, #DDA0DD);
+  background: var(--gradient-progress);
 }
 
 /* ============================================
-   下部区域 - 2D + 3D 预览
+   下部区域 - 2D + 3D 预览（使用区域3颜色 - 浅蓝色带紫调）
    ============================================ */
 .bottom-row {
   display: flex;
@@ -403,13 +502,14 @@ input[type="range"]::-webkit-slider-thumb {
 
 .preview-card {
   flex: 1;
-  background: rgba(240, 244, 250, 0.65);
+  background: var(--bg-preview-area);
   backdrop-filter: blur(8px);
   border-radius: 24px;
-  border: 1px solid rgba(172, 229, 238, 0.5);
+  border: 2px solid var(--border-preview-area);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(90, 140, 190, 0.12);
 }
 
 .preview-content {
@@ -421,19 +521,19 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .preview-image-area {
-  background: rgba(248, 250, 252, 0.7);
+  background: var(--bg-preview);
   border-radius: 20px;
   aspect-ratio: 1 / 1;
-  border: 1px solid rgba(172, 229, 238, 0.6);
+  border: 1px solid var(--color-primary-border-soft);
   overflow: hidden;
   position: relative;
 }
 
 .model-container {
-  background: rgba(248, 250, 252, 0.7);
+  background: var(--bg-preview);
   border-radius: 20px;
   aspect-ratio: 1 / 1;
-  border: 1px solid rgba(172, 229, 238, 0.6);
+  border: 1px solid var(--color-primary-border-soft);
   overflow: hidden;
   position: relative;
 }
@@ -448,30 +548,30 @@ input[type="range"]::-webkit-slider-thumb {
 .preview-hint {
   font-size: 10px;
   font-family: 'Inter', sans-serif;
-  color: rgba(44, 95, 107, 0.5);
+  color: var(--text-muted);
   text-align: center;
   padding-top: 4px;
-  border-top: 1px solid rgba(172, 229, 238, 0.3);
+  border-top: 1px solid var(--color-primary-border-faint);
 }
 
 /* 下载按钮 */
 .download-btn {
   width: 100%;
-  background: rgba(172, 229, 238, 0.25);
-  border: 1px solid rgba(172, 229, 238, 0.6);
+  background: var(--color-primary-bg-light);
+  border: 1px solid var(--color-primary-border-soft);
   padding: 8px;
   border-radius: 36px;
   font-weight: 500;
   font-size: 12px;
   font-family: 'Inter', sans-serif;
-  color: #2C5F6B;
+  color: var(--color-primary);
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
 }
 
 .download-btn:hover:not(:disabled) {
-  background: rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg-mid);
 }
 
 .download-btn:disabled {
@@ -489,7 +589,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   gap: 8px;
   z-index: 10;
-  background: rgba(240, 244, 250, 0.9);
+  background: var(--bg-card-solid);
   padding: 6px 12px;
   border-radius: 40px;
   backdrop-filter: blur(4px);
@@ -502,7 +602,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   gap: 8px;
   z-index: 10;
-  background: rgba(240, 244, 250, 0.9);
+  background: var(--bg-card-solid);
   padding: 6px 12px;
   border-radius: 40px;
   backdrop-filter: blur(4px);
@@ -517,12 +617,12 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 16px;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
-  color: #2C5F6B;
+  color: var(--color-primary);
   transition: all 0.2s;
 }
 
 .tool-btn-icon:hover {
-  background: rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg-mid);
 }
 
 .mode-btn-text {
@@ -534,23 +634,23 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
   transition: all 0.2s;
 }
 
 .mode-btn-text:hover {
-  background: rgba(172, 229, 238, 0.5);
+  background: var(--color-primary-bg-mid);
 }
 
 .mode-btn-text.active {
-  background: rgba(172, 229, 238, 0.8);
-  color: #2C5F6B;
+  background: var(--color-primary-bg-heavy);
+  color: var(--color-primary);
 }
 
 .zoom-info {
   font-size: 12px;
   font-family: 'Inter', sans-serif;
-  color: #4A6F7A;
+  color: var(--color-primary-mid);
   background: white;
   padding: 0 10px;
   border-radius: 20px;
@@ -582,7 +682,7 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: rgba(44, 95, 107, 0.5);
+  color: var(--text-muted);
   gap: 12px;
 }
 
@@ -590,10 +690,15 @@ input[type="range"]::-webkit-slider-thumb {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(172, 229, 238, 0.3);
-  border-top-color: #2C5F6B;
+  border: 3px solid var(--color-primary-bg-faint);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* 补充变量 - 加载动画边框 */
+:root {
+  --color-primary-bg-faint: rgba(172, 229, 238, 0.3);
 }
 
 @keyframes spin {
@@ -606,8 +711,8 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
   font-size: 11px;
   font-family: 'Inter', sans-serif;
-  color: #4A6F7A;
-  border-top: 1px solid rgba(172, 229, 238, 0.5);
+  color: var(--color-primary-mid);
+  border-top: 1px solid var(--color-primary-border);
   padding-top: 20px;
   margin-top: 28px;
 }
@@ -647,23 +752,46 @@ input[type="range"]::-webkit-slider-thumb {
    暗色模式
    ============================================ */
 @media (prefers-color-scheme: dark) {
-  body {
-    background: #1a1e2c;
-    color: #e9ecef;
+  :root {
+    --bg-body: var(--bg-dark-body);
+    --text-dark: var(--text-dark-light);
+    --bg-card: var(--bg-dark-card);
+    --bg-input: var(--bg-dark-input);
+    --color-primary-mid: #6e7681;
+    --footer-note: var(--text-dark-muted);
+    
+    /* 暗色模式下的区域颜色 */
+    --bg-sketch-area: var(--bg-sketch-area-dark);
+    --bg-params-area: var(--bg-params-area-dark);
+    --bg-preview-area: var(--bg-preview-area-dark);
+    
+    /* 暗色模式下的边框颜色 */
+    --border-sketch-area: rgba(80, 120, 180, 0.6);
+    --border-params-area: rgba(70, 110, 170, 0.6);
+    --border-preview-area: rgba(85, 125, 185, 0.6);
   }
+  
+  body {
+    background: var(--bg-body);
+    color: var(--text-dark);
+  }
+  
   .sketch-card,
   .compact-card,
   .preview-card {
-    background: rgba(30, 35, 45, 0.7);
+    background: var(--bg-card);
   }
+  
   .card-header {
-    color: #ACE5EE;
+    color: var(--color-primary-light);
   }
+  
   .prompt-input {
-    background: rgba(20, 25, 35, 0.6);
-    color: #e9ecef;
+    background: var(--bg-input);
+    color: var(--text-dark-light);
   }
+  
   .footer-note {
-    color: #6e7681;
+    color: var(--text-dark-muted);
   }
 }
