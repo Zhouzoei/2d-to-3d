@@ -1,9 +1,6 @@
 /* ============================================
    CSS 变量定义（颜色系统）
    ============================================ */
-/* ============================================
-   CSS 变量定义（颜色系统）
-   ============================================ */
 :root {
   /* ========================================
      主色调 - 青色系（用于强调、边框、装饰）
@@ -144,7 +141,7 @@ body {
   backdrop-filter: blur(4px);
   padding: 4px 16px;
   border-radius: 60px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-primary);
   letter-spacing: 1px;
@@ -153,7 +150,7 @@ body {
 }
 
 .hero-title {
-  font-size: 42px;
+  font-size: 44px;
   font-weight: 700;
   letter-spacing: 0.1em;
   font-family: 'Noto Serif SC', serif;
@@ -165,7 +162,7 @@ body {
 }
 
 .hero-subtitle {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-primary-mid);
   max-width: 500px;
   margin: 0 auto;
@@ -220,8 +217,8 @@ body {
    ============================================ */
 .card-header {
   padding: 12px 16px 8px 16px;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 750;
+  font-size: 18px;
   color: var(--color-primary);
   display: flex;
   justify-content: space-between;
@@ -233,7 +230,7 @@ body {
   background: var(--color-primary-bg-soft);
   padding: 2px 10px;
   border-radius: 30px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-primary);
 }
@@ -292,8 +289,8 @@ body {
   border: none;
   padding: 5px 14px;
   border-radius: 40px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary-mid);
   cursor: pointer;
@@ -315,8 +312,8 @@ body {
   border: 1px solid var(--color-primary-bg-strong);
   padding: 10px 18px;
   border-radius: 44px;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 16px;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary);
   cursor: pointer;
@@ -341,7 +338,7 @@ body {
   border: 1px solid var(--color-primary-border-soft);
   border-radius: 20px;
   padding: 12px 16px;
-  font-size: 13px;
+  font-size: 14px;
   font-family: 'Inter', monospace;
   background: var(--bg-input);
   color: var(--text-input);
@@ -365,12 +362,12 @@ body {
 
 .style-chip {
   background: var(--color-primary-bg-light);
-  border: 1px solid var(--color-primary-border);
+  border: 2px solid var(--color-primary-border);
   border-radius: 30px;
   padding: 6px 5px;
   text-align: center;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary);
   cursor: pointer;
@@ -400,18 +397,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .param-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary-mid);
 }
 
 .param-value {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-accent-dark);
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -468,7 +465,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .status-text {
   flex: 1;
-  font-size: 11px;
+  font-size: 13px;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary-mid);
 }
@@ -546,7 +543,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* 预览提示 */
 .preview-hint {
-  font-size: 10px;
+  font-size: 12px;
   font-family: 'Inter', sans-serif;
   color: var(--text-muted);
   text-align: center;
@@ -561,8 +558,8 @@ input[type="range"]::-webkit-slider-thumb {
   border: 1px solid var(--color-primary-border-soft);
   padding: 8px;
   border-radius: 36px;
-  font-weight: 500;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 14px;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary);
   cursor: pointer;
@@ -630,8 +627,8 @@ input[type="range"]::-webkit-slider-thumb {
   border: none;
   background: transparent;
   border-radius: 30px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   color: var(--color-primary-mid);
@@ -648,7 +645,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .zoom-info {
-  font-size: 12px;
+  font-size: 14px;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary-mid);
   background: white;
@@ -709,7 +706,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* 底部 */
 .footer-note {
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
   font-family: 'Inter', sans-serif;
   color: var(--color-primary-mid);
   border-top: 1px solid var(--color-primary-border);
