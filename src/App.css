@@ -237,7 +237,7 @@ body {
   inset: 0;
   border-radius: 24px;
   padding: 3px;
-  background: linear-gradient(135deg, #93C9D1 0%, #D8C4E0 50%, #93C9D1 100%);
+  background: linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%);
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
