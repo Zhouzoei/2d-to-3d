@@ -45,7 +45,6 @@ function App() {
     }, 2000);
   };
 
-  // 下载文件辅助函数
   const downloadFile = async (url, filename) => {
     try {
       const response = await fetch(url);
@@ -65,7 +64,6 @@ function App() {
     }
   };
 
-  // 下载 2D 图片
   const handleDownload2D = () => {
     const link = document.createElement('a');
     link.download = '2d-character.png';
@@ -73,7 +71,6 @@ function App() {
     link.click();
   };
 
-  // 下载 3D 模型
   const handleDownload3D = async () => {
     setIsDownloading(true);
     try {
@@ -89,69 +86,81 @@ function App() {
     }
   };
 
-  // 获取纹理质量文字
   const getTextureQualityText = (val) => {
     if (val >= 0.7) return '高';
     if (val >= 0.4) return '中';
     return '低';
   };
 
-  // 风格预设点击
   const handleStyleClick = (style) => {
     setSelectedStyle(style);
-    const stylePrompts = {
-      '奇幻': 'fantasy character, magical, glowing elements, detailed armor',
-      '科幻': 'sci-fi character, cyberpunk, neon lights, futuristic armor',
-      '可爱': 'cute character, chibi style, big eyes, adorable, soft colors',
-      '写实': 'realistic character, detailed texture, natural lighting, PBR'
-    };
-    setPrompt(stylePrompts[style] || '');
   };
+
+  // 拆分标题字符用于动画
+  const titleChars = '绘灵造物'.split('');
+  const badgeChars = '✦ 绘影 · Spirit Brush ✦'.split('');
+  const subtitleChars = '手绘草图 + 文字描述 → 2D角色 → 3D模型'.split('');
 
   return (
     <div className="app">
       <div className="main-content">
+        {/* 头部 */}
         <div className="hero-section">
-          <div className="badge">✦ 绘影 · Spirit Brush ✦</div>
-          <div className="hero-title">绘灵造物</div>
-          <p className="hero-subtitle">手绘草图 + 文字描述 → 2D角色 → 3D模型</p>
+          <div className="badge">
+            {badgeChars.map((char, i) => (
+              <span key={i} className="wave-char" style={{ '--delay': i }}>
+                {char}
+              </span>
+            ))}
+          </div>
+          <div className="hero-title">
+            {titleChars.map((char, i) => (
+              <span key={i} className="title-char">{char}</span>
+            ))}
+          </div>
+          <p className="hero-subtitle">
+            {subtitleChars.map((char, i) => (
+              <span key={i} className="sub-wave-char" style={{ '--delay': i }}>
+                {char}
+              </span>
+            ))}
+          </p>
         </div>
 
-        {/* 上部区域：左侧画布 + 右侧控制区 */}
-        <div className="top-row">
-          {/* 左侧：画布区 */}
-          <div className="sketch-card">
-            <div className="card-header">
-              灵动画布
-              <span>Sketch</span>
-            </div>
-            <div className="card-content sketch-content">
-              <SketchCanvasNative onSketchChange={handleSketchChange} />
-              <button 
-                className="generate-button" 
-                onClick={handleGenerate} 
-                disabled={loading || !sketchData}
-              >
-                {loading ? '生成中...' : '开始生成 →'}
-              </button>
+        {/* 上部双栏布局：左侧画布 + 右侧三个卡片 */}
+        <div className="top-double-layout">
+          {/* 左侧：灵动画布卡片（包含文字描述 + 生成按钮） */}
+          <div className="sketch-col">
+            <div className="card sketch-card-full">
+              <div className="card-header">
+                灵动画布
+                <span>Sketch</span>
+              </div>
+              <div className="card-content sketch-card-content">
+                <div className="sketch-area-wrapper">
+                  <SketchCanvasNative onSketchChange={handleSketchChange} />
+                </div>
+                
+                {/* 文字描述 - 放在工具栏下方 */}
+                <div className="prompt-wrapper">
+                  <TextInput value={prompt} onChange={setPrompt} />
+                </div>
+                
+                <button 
+                  className="generate-button" 
+                  onClick={handleGenerate} 
+                  disabled={loading || !sketchData}
+                >
+                  {loading ? '生成中... ' : '开始生成'}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* 右侧：控制区 */}
-          <div className="right-controls">
-            {/* 文字输入框 - 放在最上面 */}
-            <div className="compact-card prompt-card">
-              <div className="card-header">
-                文字描述
-                <span>Prompt</span>
-              </div>
-              <div className="card-content">
-                <TextInput value={prompt} onChange={setPrompt} />
-              </div>
-            </div>
-
-            {/* 风格预设 - 小卡片 */}
-            <div className="compact-card">
+          {/* 右侧：三个参数卡片 */}
+          <div className="params-col">
+            {/* 风格预设卡片 */}
+            <div className="card">
               <div className="card-header">
                 风格预设
                 <span>Presets</span>
@@ -171,8 +180,8 @@ function App() {
               </div>
             </div>
 
-            {/* 高级参数 - 小卡片 */}
-            <div className="compact-card">
+            {/* 高级参数卡片 */}
+            <div className="card">
               <div className="card-header">
                 高级参数
                 <span>Fine-tune</span>
@@ -183,6 +192,7 @@ function App() {
                     <span className="param-label">创意度</span>
                     <span className="param-value">{creativity.toFixed(2)}</span>
                   </div>
+                  <div className="param-desc">数值越高，生成结果越多样化</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -197,6 +207,7 @@ function App() {
                     <span className="param-label">几何细节</span>
                     <span className="param-value">{geometryDetail.toFixed(2)}</span>
                   </div>
+                  <div className="param-desc">网格分辨率与结构复杂度</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -211,6 +222,7 @@ function App() {
                     <span className="param-label">纹理质量</span>
                     <span className="param-value">{getTextureQualityText(textureQuality)}</span>
                   </div>
+                  <div className="param-desc">UV 分辨率与纹理细节层级</div>
                   <input 
                     type="range" 
                     min="0" 
@@ -223,8 +235,8 @@ function App() {
               </div>
             </div>
 
-            {/* 生成状态 - 小卡片 */}
-            <div className="compact-card">
+            {/* 生成状态卡片 */}
+            <div className="card">
               <div className="card-header">
                 生成状态
                 <span>Live</span>
@@ -241,7 +253,7 @@ function App() {
                   <div className={`status-dot ${generationStatus.character === 'active' ? 'active' : generationStatus.character === 'done' ? 'done' : ''}`}></div>
                   <div className="status-text">
                     <span className="title">2D 角色生成</span>
-                    <div>{generationStatus.character === 'active' ? '推理中...' : generationStatus.character === 'done' ? '生成完成' : '等待中'}</div>
+                    <div>{generationStatus.character === 'active' ? 'Stable Diffusion 推理中...' : generationStatus.character === 'done' ? '生成完成' : '等待中'}</div>
                   </div>
                 </div>
                 <div className="status-item">
@@ -259,49 +271,52 @@ function App() {
           </div>
         </div>
 
-        {/* 下部区域：2D 预览 + 3D 预览 */}
-        <div className="bottom-row">
-          {/* 左下：2D 预览区 */}
-          <div className="preview-card">
-            <div className="card-header">
-              灵韵画卷
-              <span>2D Artwork</span>
-            </div>
-            <div className="card-content preview-content">
-              <div className="preview-image-area">
-                <ImagePreview imageUrl={testImageUrl} loading={loading} />
+        {/* 下部双栏布局：2D预览 + 3D预览 */}
+        <div className="bottom-double-layout">
+          {/* 左侧：2D预览 */}
+          <div className="gallery-left">
+            <div className="card preview-card-full">
+              <div className="card-header">
+                灵韵画卷
+                <span>2D Artwork</span>
               </div>
-              <div className="preview-hint">鼠标拖拽移动 | 按钮缩放</div>
-              <button className="download-btn" onClick={handleDownload2D} disabled={loading}>
-                下载 2D 图片 ↓
-              </button>
+              <div className="card-content preview-card-content">
+                <div className="preview-area">
+                  <ImagePreview imageUrl={testImageUrl} loading={loading} />
+                </div>
+                <div className="info-text">鼠标拖拽移动 | 按钮缩放</div>
+                <button className="download-btn" onClick={handleDownload2D} disabled={loading}>
+                  下载 2D 图片
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* 右下：3D 预览区 */}
-          <div className="preview-card">
-            <div className="card-header">
-              造物之形
-              <span>OBJ / MTL</span>
-            </div>
-            <div className="card-content preview-content">
-              <div className="model-container">
-                <div className="model-viewer">
+          {/* 右侧：3D预览 */}
+          <div className="gallery-right">
+            <div className="card preview-card-full">
+              <div className="card-header">
+                造物之形
+                <span>3D Model</span>
+              </div>
+              <div className="card-content preview-card-content">
+                <div className="preview-area model-preview-area">
                   <Model3DPreview modelUrl={testModelUrl} loading={loading} />
                 </div>
+                <div className="info-text">鼠标拖拽旋转 · 滚轮缩放 · PBR 材质</div>
+                <button 
+                  className="download-btn" 
+                  onClick={handleDownload3D} 
+                  disabled={isDownloading || loading}
+                >
+                  {isDownloading ? '下载中...' : '下载 3D 模型'}
+                </button>
               </div>
-              <div className="preview-hint">鼠标拖拽旋转 | 滚轮缩放 | 右键平移</div>
-              <button 
-                className="download-btn" 
-                onClick={handleDownload3D} 
-                disabled={isDownloading || loading}
-              >
-                {isDownloading ? '下载中...' : '下载 3D 模型 ↓'}
-              </button>
             </div>
           </div>
         </div>
 
+        {/* 底部 */}
         <div className="footer-note">✦ 绘影 · 绘灵造物：基于草图的2D/3D角色生成工具 ✦</div>
       </div>
     </div>

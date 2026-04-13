@@ -280,7 +280,6 @@ const SketchCanvasNative = ({ onSketchChange }) => {
           width: '100%',
           height: 'auto',
           aspectRatio: '1 / 1',
-          backgroundColor: 'white',
           borderRadius: '16px',
           cursor: 'crosshair',
           touchAction: 'none',
@@ -294,7 +293,15 @@ const SketchCanvasNative = ({ onSketchChange }) => {
           <button className="tool-btn" onClick={clearCanvas}>清空</button>
         </div>
         <div className="tool-group">
-          <label className="tool-btn" style={{ cursor: 'pointer' }}>
+          <label 
+            className="tool-btn" 
+            style={{ 
+              cursor: 'pointer',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
+              fontSize: '13px',
+              fontWeight: 700,
+            }}
+          >
             上传图片
             <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={uploadImage} style={{ display: 'none' }} />
           </label>
