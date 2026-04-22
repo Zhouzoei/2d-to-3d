@@ -294,10 +294,16 @@ const SketchCanvasNative = ({ onSketchChange }) => {
                     <button className="tool-btn" onClick={clearCanvas}>清空</button>
                 </div>
                 <div className="tool-group">
-                    <label className="tool-btn" style={{ cursor: 'pointer' }}>
+                    <button className="tool-btn" onClick={() => document.getElementById('upload-sketch-input').click()}>
                         上传图片
-                        <input type="file" accept="image/png, image/jpeg, image/jpg" onChange={uploadImage} style={{ display: 'none' }} />
-                    </label>
+                    </button>
+                    <input 
+                        id="upload-sketch-input"
+                        type="file" 
+                        accept="image/png, image/jpeg, image/jpg" 
+                        onChange={uploadImage} 
+                        style={{ display: 'none' }} 
+                    />
                     <button className="tool-btn" onClick={downloadSketch}>下载</button>
                     <button className="tool-btn" onClick={undo}>撤销</button>
                 </div>

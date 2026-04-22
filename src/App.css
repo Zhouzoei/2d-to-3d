@@ -11,7 +11,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Noto Serif SC', sans-serif;
+  font-family: 'Times New Roman','Inter', -apple-system, BlinkMacSystemFont, 'Noto Serif SC', sans-serif;
   background: #DCE5F0;
   color: #1A2C3E;
   line-height: 1.4;
@@ -53,7 +53,7 @@ body {
   backdrop-filter: blur(4px);
   padding: 5px 24px;
   border-radius: 60px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #1A4A55;
   letter-spacing: 1px;
@@ -258,7 +258,7 @@ body {
 .card-header {
   padding: 18px 22px 12px 22px;
   font-weight: 800;
-  font-size: 19px;
+  font-size: 22px;
   color: #0A2A33;
   display: flex;
   align-items: center;
@@ -273,7 +273,7 @@ body {
   background: rgba(0, 0, 0, 0.12);
   padding: 5px 14px;
   border-radius: 30px;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 700;
   color: #0A2A33;
 }
@@ -340,7 +340,7 @@ body {
 }
 
 .sketch-area-wrapper .tool-btn {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   padding: 6px 16px;
   color: #1A3A44;
@@ -372,7 +372,7 @@ body {
   border: 1.5px solid rgba(255, 255, 255, 0.65);
   border-radius: 20px;
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: 18px;
   font-family: 'Inter', sans-serif;
   background: rgba(255, 255, 255, 0.85);
   color: #1A3A44;
@@ -395,7 +395,7 @@ body {
    生成按钮
    ============================================ */
 .generate-button {
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 800;
   padding: 14px 18px;
   background: rgba(0, 0, 0, 0.12);
@@ -457,7 +457,7 @@ body {
 }
 
 .style-chip {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   padding: 12px 5px;
   color: #0A2A33;
@@ -501,13 +501,13 @@ body {
 }
 
 .param-label {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   color: #0A2A33;
 }
 
 .param-value {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 800;
   color: #0A2A33;
   background: rgba(255, 255, 255, 0.6);
@@ -516,7 +516,7 @@ body {
 }
 
 .param-desc {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: #2C5F6B;
   margin-bottom: 8px;
@@ -590,7 +590,7 @@ input[type="range"]::-moz-range-thumb {
 
 .status-text {
   flex: 1;
-  font-size: 14px;
+  font-size: 18px;
   color: #1A3A44;
   font-weight: 600;
 }
@@ -753,7 +753,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .preview-area .mode-btn-text {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   padding: 6px 16px;
   background: transparent;
@@ -791,7 +791,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* 提示信息 */
 .info-text {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: #2C5F6B;
   text-align: center;
@@ -805,7 +805,7 @@ input[type="range"]::-moz-range-thumb {
 .download-btn {
   width: 100%;
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   padding: 12px;
   background: rgba(0, 0, 0, 0.12);
