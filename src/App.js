@@ -5,6 +5,8 @@ import ImagePreview from './ImagePreview';
 import Model3DPreview from './Model3DPreview';
 import WelcomeScreen from './WelcomeScreen';
 import OnboardingTooltip from './OnboardingTooltip';
+import AuthModal from './AuthModal';
+import { UserProvider, useUser } from './UserContext';
 import './App.css';
 
 // API 地址
@@ -13,46 +15,33 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 // 过期天数配置
 const EXPIRE_DAYS = 7;
 
-function App() {
-    // ============================================
-    // 欢迎页和引导提示的统一过期逻辑
-    // ============================================
+// 主应用内容组件（需要访问用户上下文）
+const AppContent = () => {
+    const { currentUser, incrementGenCount } = useUser();
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    
+    // ... 其他 state 保持不变
     const [showWelcome, setShowWelcome] = useState(() => {
         const lastVisit = localStorage.getItem('lastVisit');
         const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
         
-        // 如果没有看过欢迎页，显示
-        if (!hasSeenWelcome) {
-            return true;
-        }
-        
-        // 如果超过 EXPIRE_DAYS 天没有访问，重新显示欢迎页
+        if (!hasSeenWelcome) return true;
         if (lastVisit) {
             const daysSinceLastVisit = (Date.now() - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
             if (daysSinceLastVisit >= EXPIRE_DAYS) {
-                // 超过天数，清除所有记录，重新显示欢迎页
                 localStorage.removeItem('hasSeenWelcome');
                 localStorage.removeItem('hasSeenOnboarding');
                 return true;
             }
         }
-        
         return false;
     });
 
     const [showOnboarding, setShowOnboarding] = useState(() => {
         const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
         const lastVisit = localStorage.getItem('lastVisit');
-        
-        // 如果欢迎页正在显示，不显示引导提示
         if (showWelcome) return false;
-        
-        // 如果没有看过引导提示，显示
-        if (!hasSeenOnboarding) {
-            return true;
-        }
-        
-        // 如果超过 EXPIRE_DAYS 天没有访问，重新显示引导提示
+        if (!hasSeenOnboarding) return true;
         if (lastVisit) {
             const daysSinceLastVisit = (Date.now() - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
             if (daysSinceLastVisit >= EXPIRE_DAYS) {
@@ -60,38 +49,9 @@ function App() {
                 return true;
             }
         }
-        
         return false;
     });
 
-    // 进入主应用（欢迎页点击开始创作）
-    const handleEnterApp = () => {
-        setShowWelcome(false);
-        localStorage.setItem('hasSeenWelcome', 'true');
-        localStorage.setItem('lastVisit', Date.now().toString());
-        
-        // 检查是否需要显示引导提示
-        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-        if (!hasSeenOnboarding) {
-            setShowOnboarding(true);
-        }
-    };
-
-    // 引导提示完成
-    const handleOnboardingComplete = () => {
-        setShowOnboarding(false);
-        localStorage.setItem('hasSeenOnboarding', 'true');
-    };
-
-    // 引导提示跳过
-    const handleOnboardingSkip = () => {
-        setShowOnboarding(false);
-        localStorage.setItem('hasSeenOnboarding', 'true');
-    };
-
-    // ============================================
-    // 原有的 state
-    // ============================================
     const [sketchData, setSketchData] = useState(null);
     const [prompt, setPrompt] = useState('');
     const [loading, setLoading] = useState(false);
@@ -111,9 +71,27 @@ function App() {
 
     const testModelUrl = '/assets/3d-character.obj';
 
-    // ============================================
-    // 原有的函数
-    // ============================================
+    const handleEnterApp = () => {
+        setShowWelcome(false);
+        localStorage.setItem('hasSeenWelcome', 'true');
+        localStorage.setItem('lastVisit', Date.now().toString());
+        
+        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+        if (!hasSeenOnboarding) {
+            setShowOnboarding(true);
+        }
+    };
+
+    const handleOnboardingComplete = () => {
+        setShowOnboarding(false);
+        localStorage.setItem('hasSeenOnboarding', 'true');
+    };
+
+    const handleOnboardingSkip = () => {
+        setShowOnboarding(false);
+        localStorage.setItem('hasSeenOnboarding', 'true');
+    };
+
     const handleSketchChange = (dataURL) => {
         setSketchData(dataURL);
         setGeneratedImage(null);
@@ -181,6 +159,11 @@ function App() {
                 });
                 setProgress(100);
                 setTimeout(() => setProgress(0), 2000);
+                
+                // 生成成功，增加用户统计
+                if (currentUser) {
+                    incrementGenCount();
+                }
             } else {
                 throw new Error('后端未返回图片数据');
             }
@@ -279,10 +262,50 @@ function App() {
                     />
                 )}
                 
+                {/* 登录弹窗 */}
+                <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+                
                 <div className="main-content">
-                    {/* 头部 */}
-                    <div className="hero-section">
-                        <div className="badge">
+                    {/* 头部 - 带用户按钮 */}
+                    <div className="hero-section" style={{ position: 'relative' }}>
+                        <button 
+                            className="user-btn" 
+                            onClick={() => setShowAuthModal(true)}
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(172, 229, 238, 0.6)',
+                                backdropFilter: 'blur(4px)',
+                                border: '1px solid rgba(255, 255, 255, 0.6)',
+                                borderRadius: '40px',
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.3s',
+                                zIndex: 100
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(172, 229, 238, 0.9)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.9)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(172, 229, 238, 0.6)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                            }}
+                        >
+                            <span style={{ fontSize: '16px' }}>
+                                {currentUser ? (currentUser.name?.charAt(0).toUpperCase() || '👤') : '👤'}
+                            </span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A4A55' }}>
+                                {currentUser ? (currentUser.name || currentUser.email?.split('@')[0]) : '登录'}
+                            </span>
+                        </button>
+                        
+                        <div className="badge" style={{ display: 'block', textAlign: 'center', width: 'fit-content', margin: '0 auto 20px' }}>
                             {badgeChars.map((char, i) => (
                                 <span key={i} className="wave-char" style={{ '--delay': i }}>
                                     {char}
@@ -303,7 +326,7 @@ function App() {
                         </p>
                     </div>
 
-                    {/* 上部双栏布局 */}
+                    {/* 其余主应用内容保持不变 */}
                     <div className="top-double-layout">
                         {/* 左侧：灵动画布卡片 */}
                         <div className="sketch-col">
@@ -332,7 +355,6 @@ function App() {
 
                         {/* 右侧：三个参数卡片 */}
                         <div className="params-col">
-                            {/* 风格预设 */}
                             <div className="card">
                                 <div className="card-header">
                                     风格预设
@@ -353,7 +375,6 @@ function App() {
                                 </div>
                             </div>
 
-                            {/* 高级参数 */}
                             <div className="card">
                                 <div className="card-header">
                                     高级参数
@@ -408,7 +429,6 @@ function App() {
                                 </div>
                             </div>
 
-                            {/* 生成状态 */}
                             <div className="card">
                                 <div className="card-header">
                                     生成状态
@@ -449,7 +469,6 @@ function App() {
                         </div>
                     </div>
 
-                    {/* 下部双栏布局 */}
                     <div className="bottom-double-layout">
                         <div className="gallery-left">
                             <div className="card preview-card-full">
@@ -500,6 +519,15 @@ function App() {
                 </div>
             </div>
         </>
+    );
+};
+
+// 主 App 组件，用 UserProvider 包裹
+function App() {
+    return (
+        <UserProvider>
+            <AppContent />
+        </UserProvider>
     );
 }
 

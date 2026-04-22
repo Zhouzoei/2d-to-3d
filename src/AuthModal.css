@@ -1,0 +1,288 @@
+/* 弹窗遮罩 */
+.auth-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 弹窗内容 */
+.auth-modal {
+    background: #C5E8ED;
+    border-radius: 28px;
+    width: 90%;
+    max-width: 420px;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: modalFadeIn 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 渐变边框 */
+.auth-modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    padding: 3px;
+    background: linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* 弹窗头部 */
+.auth-modal-header {
+    padding: 24px 28px 16px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.auth-modal-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0A2A33;
+    font-family: 'Noto Serif SC', serif;
+}
+
+.auth-modal-close {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    color: #1A4A55;
+    transition: all 0.2s;
+}
+
+.auth-modal-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: rotate(90deg);
+}
+
+/* 标签页 */
+.auth-tabs {
+    display: flex;
+    padding: 0 28px;
+    gap: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.auth-tab {
+    padding: 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2C5F6B;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.auth-tab.active {
+    color: #0A2A33;
+    border-bottom-color: #0A2A33;
+}
+
+/* 表单 */
+.auth-form {
+    padding: 24px 28px 32px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0A2A33;
+    margin-bottom: 6px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #2C8A9A;
+    background: white;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0A2A33;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 44px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+}
+
+.auth-btn:hover {
+    background: rgba(0, 0, 0, 0.22);
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* 用户面板 */
+.user-panel {
+    padding: 20px 28px;
+}
+
+.user-info {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.user-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 32px;
+    font-weight: bold;
+    color: white;
+}
+
+.user-name-large {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A2A33;
+}
+
+.user-email {
+    font-size: 14px;
+    color: #2C5F6B;
+    margin-top: 4px;
+}
+
+.user-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 16px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    margin-bottom: 24px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0A2A33;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #2C5F6B;
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+}
+
+/* 提示消息 */
+.toast-message {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1A4A55;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-size: 14px;
+    z-index: 2001;
+    animation: toastFadeIn 0.3s ease;
+}
+
+.toast-message.error {
+    background: #e74c3c;
+}
+
+@keyframes toastFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* 响应式 */
+@media (max-width: 550px) {
+    .auth-modal {
+        max-width: 380px;
+    }
+    .auth-modal-header {
+        padding: 20px 24px 12px;
+    }
+    .auth-modal-header h2 {
+        font-size: 20px;
+    }
+    .auth-form {
+        padding: 20px 24px 28px;
+    }
+    .user-panel {
+        padding: 16px 24px;
+    }
+}
