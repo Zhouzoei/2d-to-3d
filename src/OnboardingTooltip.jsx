@@ -12,21 +12,21 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
     const tips = [
         {
             title: '灵动画布',
-            content: '在这里绘制你的角色草图，支持画笔、橡皮、撤销、上传图片等多种工具。下方可以输入文字描述，详细描述角色的特征。',
+            content: '在这里绘制你的角色草图，支持画笔、橡皮、撤销、上传图片等多种工具。\n下方可以输入文字描述，详细描述角色的特征。',
             targetSelector: '.sketch-col',
             placement: 'right',
             highlight: true
         },
         {
             title: '风格预设',
-            content: '快速选择奇幻、科幻、可爱、写实等艺术风格，点击即可切换，系统会自动填充对应的提示词。',
+            content: '快速选择奇幻、科幻、可爱、写实等艺术风格。\n点击即可切换，系统会自动填充对应的提示词。',
             targetSelector: '.params-col .card:first-child',
             placement: 'left',
             highlight: true
         },
         {
             title: '高级参数',
-            content: '调整创意度、几何细节、纹理质量，数值越高效果越丰富，可以精细控制生成结果。',
+            content: '调整创意度、几何细节、纹理质量。\n数值越高效果越丰富，可以精细控制生成结果。',
             targetSelector: '.params-col .card:nth-child(2)',
             placement: 'left',
             highlight: true
@@ -40,7 +40,7 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
         },
         {
             title: '灵韵画卷',
-            content: 'AI 生成的 2D 角色图像会显示在这里，支持鼠标拖拽移动和按钮缩放，可以下载保存。',
+            content: 'AI 生成的 2D 角色图像会显示在这里.\n支持鼠标拖拽移动和按钮缩放，可以下载保存。',
             targetSelector: '.gallery-left .preview-card-full',
             placement: 'right',
             highlight: true
@@ -246,7 +246,14 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
                     <button className="tooltip-skip" onClick={handleSkip}>跳过</button>
                 </div>
                 <h4>{currentTip.title}</h4>
-                <p>{currentTip.content}</p>
+                <p>
+                    {currentTip.content.split('\n').map((line, i) => (
+                        <React.Fragment key={i}>
+                            {line}
+                            {i < currentTip.content.split('\n').length - 1 && <br />}
+                        </React.Fragment>
+                    ))}
+                </p>
                 <button className="tooltip-next" onClick={handleNext}>
                     {step + 1 === tips.length ? '完成' : '下一步'}
                     <span className="tooltip-arrow">→</span>

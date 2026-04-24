@@ -274,11 +274,11 @@ const AppContent = () => {
                             style={{
                                 position: 'absolute',
                                 left: 0,
-                                top: '50%',
+                                top: '20%',              // 从 50% 改成 30%，往上提
                                 transform: 'translateY(-50%)',
                                 background: 'rgba(172, 229, 238, 0.6)',
                                 backdropFilter: 'blur(4px)',
-                                border: '1px solid rgba(255, 255, 255, 0.6)',
+                                border: '3px solid rgba(255, 255, 255, 0.8)',
                                 borderRadius: '40px',
                                 padding: '8px 16px',
                                 cursor: 'pointer',
@@ -286,7 +286,8 @@ const AppContent = () => {
                                 alignItems: 'center',
                                 gap: '8px',
                                 transition: 'all 0.3s',
-                                zIndex: 100
+                                zIndex: 100,
+                                boxShadow: '0 20px 40px rgba(100, 120, 140, 0.25), 0 5px 15px rgba(100, 120, 140, 0.08)',
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = 'rgba(172, 229, 238, 0.9)';
@@ -297,10 +298,22 @@ const AppContent = () => {
                                 e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
                             }}
                         >
-                            <span style={{ fontSize: '16px' }}>
+                            {/* 头像带圆圈的样式 */}
+                            <span style={{
+                                fontSize: '22px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #2C8A9A, #9B6FB0)',
+                                color: 'white',
+                                fontWeight: 'bold'
+                            }}>
                                 {currentUser ? (currentUser.name?.charAt(0).toUpperCase() || '👤') : '👤'}
                             </span>
-                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A4A55' }}>
+                            <span style={{ fontSize: '18px', fontWeight: 600, color: '#236e7f' }}>
                                 {currentUser ? (currentUser.name || currentUser.email?.split('@')[0]) : '登录'}
                             </span>
                         </button>

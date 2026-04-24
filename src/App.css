@@ -746,7 +746,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   gap: 8px;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(159, 216, 223, 0.7);
   backdrop-filter: blur(4px);
   padding: 6px 12px;
   border-radius: 40px;
