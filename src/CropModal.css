@@ -1,0 +1,207 @@
+/* 遮罩层 */
+.crop-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 弹窗主体 */
+.crop-modal {
+    background: #C5E8ED;
+    border-radius: 28px;
+    width: 90%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    animation: cropFadeIn 0.3s ease;
+    position: relative;
+    max-height: 90vh;
+}
+
+@keyframes cropFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 渐变边框 */
+.crop-modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    padding: 3px;
+    background: linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* 头部 */
+.crop-modal-header {
+    padding: 20px 24px 12px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.crop-modal-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0A2A33;
+    font-family: 'Noto Serif SC', serif;
+}
+
+.crop-modal-close {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    color: #1A4A55;
+    transition: all 0.2s;
+}
+
+.crop-modal-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: rotate(90deg);
+}
+
+/* 比例选择栏 */
+.crop-ratios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+.crop-ratio-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A4A55;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.crop-ratio-btn:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.crop-ratio-btn.active {
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    border-color: transparent;
+    color: white;
+}
+
+/* 画布容器 - 居中，自适应宽度 */
+.crop-canvas-container {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* 画布 - 保持比例，自适应宽度 */
+.crop-canvas-container canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+/* 信息栏 */
+.crop-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 24px 16px;
+    font-size: 13px;
+    color: #1A4A55;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+/* 底部按钮 */
+.crop-modal-footer {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+.crop-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 44px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.crop-btn.cancel {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    color: #0A2A33;
+}
+
+.crop-btn.cancel:hover {
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.crop-btn.confirm {
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    border: none;
+    color: white;
+}
+
+.crop-btn.confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+    .crop-modal {
+        width: 95%;
+    }
+    .crop-ratio-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+    .crop-canvas-container {
+        padding: 15px 20px;
+    }
+}

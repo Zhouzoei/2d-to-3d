@@ -8,6 +8,7 @@ import OnboardingTooltip from './OnboardingTooltip';
 import AuthModal from './AuthModal';
 import { UserProvider, useUser } from './UserContext';
 import './App.css';
+import CropModal from './CropModal';
 
 // API 地址
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -19,6 +20,8 @@ const EXPIRE_DAYS = 7;
 const AppContent = () => {
     const { currentUser, incrementGenCount } = useUser();
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showCropModal, setShowCropModal] = useState(false);
+    const [tempSketchData, setTempSketchData] = useState(null); // 暂存原始草图
     
     // ... 其他 state 保持不变
     const [showWelcome, setShowWelcome] = useState(() => {
@@ -104,7 +107,8 @@ const AppContent = () => {
         setProgress(0);
     };
 
-    const handleGenerate = async () => {
+    // 修改 handleGenerate - 打开裁剪弹窗
+    const handleGenerate = () => {
         if (!sketchData) {
             alert('请先绘制草图');
             return;
@@ -113,7 +117,22 @@ const AppContent = () => {
             alert('请输入文字描述');
             return;
         }
+        // 打开裁剪弹窗，暂存原始草图
+        setTempSketchData(sketchData);
+        setShowCropModal(true);
+    };
 
+    // 裁剪确认后的回调 - 继续生成
+    const handleCropConfirm = async (croppedImageData) => {
+        setShowCropModal(false);
+        // 更新 sketchData 为裁剪后的图片
+        setSketchData(croppedImageData);
+        // 继续生成流程
+        await continueGenerate(croppedImageData);
+    };
+
+    // 实际的生成逻辑（提取出来）
+    const continueGenerate = async (finalSketchData) => {
         setLoading(true);
         setError(null);
         setGenerationStatus({
@@ -124,7 +143,7 @@ const AppContent = () => {
         setProgress(20);
 
         try {
-            const blob = await (await fetch(sketchData)).blob();
+            const blob = await (await fetch(finalSketchData)).blob();
             const file = new File([blob], 'sketch.png', { type: 'image/png' });
 
             const formData = new FormData();
@@ -261,7 +280,13 @@ const AppContent = () => {
                         onSkip={handleOnboardingSkip}
                     />
                 )}
-                
+                {/* 裁剪弹窗 */}
+                <CropModal
+                    isOpen={showCropModal}
+                    onClose={() => setShowCropModal(false)}
+                    sketchData={tempSketchData}
+                    onConfirm={handleCropConfirm}
+                />
                 {/* 登录弹窗 */}
                 <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
                 

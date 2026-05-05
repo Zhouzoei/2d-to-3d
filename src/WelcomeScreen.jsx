@@ -4,6 +4,7 @@ import './WelcomeScreen.css';
 const WelcomeScreen = ({ onEnter }) => {
     const [isVisible, setIsVisible] = useState(true);
     const [isSliding, setIsSliding] = useState(false);
+    const [activeTag, setActiveTag] = useState('风格预设');
 
     const handleEnter = () => {
         setIsSliding(true);
@@ -16,11 +17,36 @@ const WelcomeScreen = ({ onEnter }) => {
     const subtitleChars = '手绘草图 + 文字描述 → 2D角色 → 3D模型'.split('');
     const tagChars = ['风格预设', '可调参数', '2D生成', '3D重建'];
 
+    // 不同标签对应的示例图片
+    const exampleImages = {
+        '风格预设': {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%239B6FB0'/%3E%3Ctext x='400' y='220' font-size='22' text-anchor='middle' fill='white' font-family='Noto Serif SC'%3E🎨 风格预设示例%3C/text%3E%3Ctext x='400' y='255' font-size='14' text-anchor='middle' fill='rgba(255,255,255,0.8)'%3E奇幻 · 科幻 · 可爱 · 写实%3C/text%3E%3C/svg%3E",
+            caption: '多种艺术风格一键切换，自动填充提示词'
+        },
+        '可调参数': {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%232C8A9A'/%3E%3Ctext x='400' y='220' font-size='22' text-anchor='middle' fill='white' font-family='Noto Serif SC'%3E⚙️ 可调参数示例%3C/text%3E%3Ctext x='400' y='255' font-size='14' text-anchor='middle' fill='rgba(255,255,255,0.8)'%3E创意度 · 几何细节 · 纹理质量%3C/text%3E%3C/svg%3E",
+            caption: '精细控制生成效果，参数可实时调节'
+        },
+        '2D生成': {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23E8A87C'/%3E%3Ctext x='400' y='220' font-size='22' text-anchor='middle' fill='white' font-family='Noto Serif SC'%3E🖼️ 2D角色生成示例%3C/text%3E%3Ctext x='400' y='255' font-size='14' text-anchor='middle' fill='rgba(255,255,255,0.8)'%3E从草图到精美立绘%3C/text%3E%3C/svg%3E",
+            caption: 'AI生成高质量2D角色立绘'
+        },
+        '3D重建': {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%236B5B95'/%3E%3Ctext x='400' y='220' font-size='22' text-anchor='middle' fill='white' font-family='Noto Serif SC'%3E🗿 3D模型重建示例%3C/text%3E%3Ctext x='400' y='255' font-size='14' text-anchor='middle' fill='rgba(255,255,255,0.8)'%3E2D角色 → 3D模型%3C/text%3E%3C/svg%3E",
+            caption: '自动生成可交互的3D模型'
+        }
+    };
+
+    const currentImage = exampleImages[activeTag];
+
+    const handleTagClick = (tag) => {
+        setActiveTag(tag);
+    };
+
     if (!isVisible) return null;
 
     return (
         <div className={`welcome-screen ${isSliding ? 'slide-up' : ''}`}>
-            {/* 添加包装器 */}
             <div className="welcome-wrapper">
                 <div className="welcome-content">
                     {/* 左上角 logo 区域 */}
@@ -58,18 +84,26 @@ const WelcomeScreen = ({ onEnter }) => {
                         <div className="showcase-img-wrapper">
                             <img 
                                 className="showcase-img" 
-                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23C5E8ED'/%3E%3Ctext x='400' y='220' font-size='22' text-anchor='middle' fill='%231A4A55' font-family='Noto Serif SC'%3E角色生成示例%3C/text%3E%3Ctext x='400' y='255' font-size='14' text-anchor='middle' fill='%232C5F6B'%3E2D角色 → 3D模型%3C/text%3E%3C/svg%3E" 
-                                alt="作品展示"
+                                src={currentImage.src}
+                                alt={activeTag}
                             />
                             <div className="showcase-tags">
                                 {tagChars.map((tag, i) => (
-                                    <span key={i} className="showcase-tag">{tag}</span>
+                                    <span 
+                                        key={i} 
+                                        className={`showcase-tag ${activeTag === tag ? 'active' : ''}`}
+                                        onClick={() => handleTagClick(tag)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        {tag}
+                                    </span>
                                 ))}
                             </div>
                         </div>
+                        <div className="showcase-caption">{currentImage.caption}</div>
                     </div>
 
-                    {/* 底部留白 - 关键！确保背景完整 */}
+                    {/* 底部留白 */}
                     <div className="bottom-spacer"></div>
                 </div>
             </div>
