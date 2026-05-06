@@ -9,6 +9,7 @@ import AuthModal from './AuthModal';
 import { UserProvider, useUser } from './UserContext';
 import './App.css';
 import CropModal from './CropModal';
+import HistoryModal from './HistoryModal';
 
 // API 地址
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -22,6 +23,7 @@ const AppContent = () => {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showCropModal, setShowCropModal] = useState(false);
     const [tempSketchData, setTempSketchData] = useState(null); // 暂存原始草图
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
     
     // ... 其他 state 保持不变
     const [showWelcome, setShowWelcome] = useState(() => {
@@ -171,6 +173,7 @@ const AppContent = () => {
             if (data.image_base64) {
                 const imageUrl = `data:image/png;base64,${data.image_base64}`;
                 setGeneratedImage(imageUrl);
+                saveToHistory(imageUrl, prompt, selectedStyle, creativity, geometryDetail, textureQuality);
                 setGenerationStatus({
                     sketch: 'done',
                     character: 'done',
@@ -266,6 +269,63 @@ const AppContent = () => {
     const badgeChars = '✦ 绘影 · Spirit Brush ✦'.split('');
     const subtitleChars = '手绘草图 + 文字描述 → 2D角色 → 3D模型'.split('');
 
+// 保存生成记录的函数
+    const saveToHistory = (generatedImageUrl, prompt, style, creativity, geometryDetail, textureQuality) => {
+        // 生成缩略图（100x100）
+        const createThumbnail = (dataUrl, callback) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = 100;
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                const minSide = Math.min(img.width, img.height);
+                const sx = (img.width - minSide) / 2;
+                const sy = (img.height - minSide) / 2;
+                ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+                callback(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = dataUrl;
+        };
+
+        createThumbnail(generatedImageUrl, (thumbnail) => {
+            const newRecord = {
+                id: Date.now(),
+                createdAt: new Date().toLocaleString(),
+                thumbnail: thumbnail,
+                fullImage: generatedImageUrl,
+                prompt: prompt,
+                style: style,
+                creativity: creativity,
+                geometryDetail: geometryDetail,
+                textureQuality: textureQuality,
+                isFavorite: false
+            };
+
+            const stored = localStorage.getItem('generateHistory');
+            let history = stored ? JSON.parse(stored) : [];
+            history.unshift(newRecord); // 添加到开头
+            
+            // 限制最多保存50条
+            if (history.length > 50) {
+                history = history.slice(0, 50);
+            }
+            
+            localStorage.setItem('generateHistory', JSON.stringify(history));
+        });
+    };
+
+// 加载历史记录到界面
+    const handleLoadRecord = (record) => {
+        setGeneratedImage(record.fullImage);
+        setPrompt(record.prompt);
+        setSelectedStyle(record.style);
+        setCreativity(record.creativity);
+        setGeometryDetail(record.geometryDetail);
+        setTextureQuality(record.textureQuality);
+    };
+
     return (
         <>
             {/* 欢迎页 */}
@@ -289,10 +349,54 @@ const AppContent = () => {
                 />
                 {/* 登录弹窗 */}
                 <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-                
+                {/* 历史记录弹窗 */}
+                <HistoryModal 
+                    isOpen={showHistoryModal}
+                    onClose={() => setShowHistoryModal(false)}
+                    onLoadRecord={handleLoadRecord}
+                />                
                 <div className="main-content">
-                    {/* 头部 - 带用户按钮 */}
+                    {/* 头部 - 带用户按钮和历史记录按钮 */}
                     <div className="hero-section" style={{ position: 'relative' }}>
+                        <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '12px', zIndex: 100 }}></div>
+                            {/*历史记录按钮 */}
+                            <button 
+                            onClick={() => setShowHistoryModal(true)}
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '20%',              // 从 50% 改成 30%，往上提
+                                transform: 'translateY(-50%)',
+                                background: '#21505c27',
+                                backdropFilter: 'blur(4px)',
+                                border: '3px solid rgba(233, 236, 237, 0.8)',
+                                borderRadius: '40px',
+                                padding: '8px 25px',
+                                marginLeft: '140px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '56px',
+                                gap: '8px',
+                                transition: 'all 0.3s',
+                                boxShadow: '0 20px 40px rgba(100, 120, 140, 0.25), 0 5px 15px rgba(100, 120, 140, 0.08)',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#0a2a3344';  // 悬停时更深/更明显
+                                e.currentTarget.style.borderColor = 'rgba(225, 223, 223, 0.9)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#0a2a3327';  // 恢复原来的背景色
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                            }}
+                        >
+                            <span style={{ fontSize: '20px', fontWeight: 600, color: '#1a1a1b' ,letterSpacing: '2px'}}>
+                            生成记录
+                            </span> 
+                            
+                        </button>
+                        {/*用户按钮 */}
                         <button 
                             className="user-btn" 
                             onClick={() => setShowAuthModal(true)}

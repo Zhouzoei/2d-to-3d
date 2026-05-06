@@ -1,0 +1,575 @@
+/* HistoryModal.css - 完整版（含响应式） */
+
+/* 遮罩层 */
+.history-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 弹窗主体 */
+.history-modal {
+    background: #C5E8ED;
+    border-radius: 32px;
+    width: 900px;
+    height: 700px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+    animation: historyFadeIn 0.3s ease;
+    position: relative;
+}
+
+@keyframes historyFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 渐变边框 */
+.history-modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 32px;
+    padding: 3px;
+    background: linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* 头部 */
+.history-modal-header {
+    padding: 24px 28px 16px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.history-modal-header h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0A2A33;
+    font-family: 'Noto Serif SC', serif;
+}
+
+.history-modal-close {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: bold;
+    color: #1A4A55;
+    transition: all 0.2s;
+}
+
+.history-modal-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: rotate(90deg);
+}
+
+/* 工具栏 */
+.history-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 28px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+.history-tabs {
+    display: flex;
+    gap: 12px;
+}
+
+.history-tab {
+    padding: 8px 22px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 40px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A4A55;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-tab:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.history-tab.active {
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    border-color: transparent;
+    color: white;
+}
+
+.history-clear-all {
+    padding: 8px 18px;
+    background: rgba(231, 76, 60, 0.2);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #e74c3c;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-clear-all:hover {
+    background: rgba(231, 76, 60, 0.35);
+}
+
+/* 记录列表 */
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+/* 自定义滚动条 */
+.history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: rgba(26, 74, 85, 0.5);
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(26, 74, 85, 0.7);
+}
+
+/* 空状态 */
+.history-empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #2C5F6B;
+}
+
+.history-empty span {
+    font-size: 64px;
+    opacity: 0.5;
+}
+
+.history-empty p {
+    margin-top: 16px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.history-empty-hint {
+    font-size: 15px;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-top: 8px;
+}
+
+/* 记录项 */
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-item:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateX(6px);
+}
+
+/* 缩略图 */
+.history-item-thumb {
+    width: 85px;
+    height: 85px;
+    border-radius: 16px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.history-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 记录信息 */
+.history-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-item-style {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0A2A33;
+    margin-bottom: 6px;
+}
+
+.history-item-prompt {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2C5F6B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+}
+
+.history-item-time {
+    font-size: 16px;
+    font-weight: 500;
+    color: #4A6F7A;
+}
+
+/* 操作按钮 */
+.history-item-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.history-fav-btn,
+.history-delete-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 22px;
+    font-weight: bold;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+.history-fav-btn {
+    background: rgba(255, 255, 255, 0.6);
+    color: #FFB800;
+}
+
+.history-fav-btn.active {
+    background: #FFB800;
+    color: white;
+}
+
+.history-delete-btn {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.history-fav-btn:hover,
+.history-delete-btn:hover {
+    transform: scale(1.1);
+}
+
+/* ============================================
+   响应式
+   ============================================ */
+
+/* 大屏幕 (1200px以下) */
+@media (max-width: 1200px) {
+    .history-modal {
+        width: 850px;
+        height: 650px;
+    }
+}
+
+/* 中等屏幕 (1000px以下) */
+@media (max-width: 1000px) {
+    .history-modal {
+        width: 800px;
+        height: 600px;
+    }
+    
+    .history-tab {
+        font-size: 18px;
+        padding: 6px 18px;
+    }
+    
+    .history-clear-all {
+        font-size: 16px;
+    }
+}
+
+/* 平板 (800px以下) */
+@media (max-width: 850px) {
+    .history-modal {
+        width: 90%;
+        height: 80vh;
+        border-radius: 28px;
+    }
+    
+    .history-modal-header {
+        padding: 20px 24px 12px;
+    }
+    
+    .history-modal-header h2 {
+        font-size: 24px;
+    }
+    
+    .history-modal-close {
+        width: 34px;
+        height: 34px;
+        font-size: 20px;
+    }
+    
+    .history-toolbar {
+        padding: 12px 20px;
+    }
+    
+    .history-tab {
+        font-size: 16px;
+        padding: 6px 16px;
+    }
+    
+    .history-clear-all {
+        font-size: 14px;
+        padding: 6px 14px;
+    }
+    
+    .history-list {
+        padding: 16px 20px;
+    }
+    
+    .history-item {
+        padding: 14px 16px;
+        gap: 16px;
+    }
+    
+    .history-item-thumb {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .history-item-style {
+        font-size: 18px;
+    }
+    
+    .history-item-prompt {
+        font-size: 15px;
+    }
+    
+    .history-item-time {
+        font-size: 14px;
+    }
+    
+    .history-fav-btn,
+    .history-delete-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 20px;
+    }
+}
+
+/* 小屏幕 (650px以下) */
+@media (max-width: 650px) {
+    .history-modal {
+        width: 95%;
+        height: 85vh;
+        border-radius: 24px;
+    }
+    
+    .history-modal-header {
+        padding: 16px 20px 10px;
+    }
+    
+    .history-modal-header h2 {
+        font-size: 22px;
+    }
+    
+    .history-modal-close {
+        width: 30px;
+        height: 30px;
+        font-size: 18px;
+    }
+    
+    .history-toolbar {
+        padding: 10px 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .history-tabs {
+        gap: 8px;
+    }
+    
+    .history-tab {
+        font-size: 14px;
+        padding: 5px 14px;
+    }
+    
+    .history-clear-all {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+    
+    .history-list {
+        padding: 12px 16px;
+    }
+    
+    .history-empty {
+        padding: 50px 20px;
+    }
+    
+    .history-empty span {
+        font-size: 50px;
+    }
+    
+    .history-empty p {
+        font-size: 18px;
+    }
+    
+    .history-item {
+        padding: 12px 14px;
+        gap: 12px;
+    }
+    
+    .history-item-thumb {
+        width: 55px;
+        height: 55px;
+    }
+    
+    .history-item-style {
+        font-size: 16px;
+        margin-bottom: 3px;
+    }
+    
+    .history-item-prompt {
+        font-size: 13px;
+        max-width: 150px;
+    }
+    
+    .history-item-time {
+        font-size: 11px;
+    }
+    
+    .history-fav-btn,
+    .history-delete-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+    }
+}
+
+/* 手机 (500px以下) */
+@media (max-width: 500px) {
+    .history-modal {
+        width: 98%;
+        height: 90vh;
+        border-radius: 20px;
+    }
+    
+    .history-modal-header h2 {
+        font-size: 20px;
+    }
+    
+    .history-tab {
+        font-size: 12px;
+        padding: 4px 12px;
+    }
+    
+    .history-clear-all {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+    
+    .history-list {
+        padding: 10px 12px;
+    }
+    
+    .history-item {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+    
+    .history-item-thumb {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+    }
+    
+    .history-item-style {
+        font-size: 14px;
+    }
+    
+    .history-item-prompt {
+        font-size: 11px;
+        max-width: 120px;
+    }
+    
+    .history-item-time {
+        font-size: 10px;
+    }
+    
+    .history-fav-btn,
+    .history-delete-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+    }
+    
+    .history-empty span {
+        font-size: 40px;
+    }
+    
+    .history-empty p {
+        font-size: 16px;
+    }
+}
+
+/* 超小屏幕 (400px以下) */
+@media (max-width: 400px) {
+    .history-item-prompt {
+        max-width: 90px;
+    }
+    
+    .history-item-actions {
+        gap: 6px;
+    }
+    
+    .history-fav-btn,
+    .history-delete-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 14px;
+    }
+}
