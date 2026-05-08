@@ -701,7 +701,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   gap: 8px;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(159, 216, 223, 0.7);
   backdrop-filter: blur(4px);
   padding: 6px 12px;
   border-radius: 40px;
@@ -936,4 +936,59 @@ input[type="range"]::-moz-range-thumb {
     color: #b0c8d8;
     background: rgba(100, 150, 200, 0.3);
   }
+}
+/* ============================================
+   小屏幕下按钮竖排靠左，标题居中（用户在上，记录在下）
+   ============================================ */
+
+@media (max-width: 650px) {
+    /* 头部区域保持相对定位，作为容器 */
+    .hero-section {
+        position: relative;
+        min-height: 140px;
+    }
+    
+    /* 覆盖两个按钮的绝对定位 */
+    .hero-section > button {
+        position: absolute !important;
+        left: 0 !important;
+        margin-left: 0 !important;
+    }
+    
+    /* 用户按钮 - 放上面 */
+    .hero-section > button:last-of-type {
+        top: 12% !important;
+        transform: translateY(-50%) !important;
+        padding: 6px 12px !important;
+        height: 48px !important;
+    }
+    
+    .hero-section > button:last-of-type span:first-of-type {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 18px !important;
+    }
+    
+    .hero-section > button:last-of-type span:last-of-type {
+        font-size: 14px !important;
+    }
+    
+    /* 历史记录按钮 - 放下面 */
+    .hero-section > button:first-of-type {
+        top: 40% !important;
+        transform: translateY(-50%) !important;
+        padding: 6px 20px !important;
+        height: 48px !important;
+    }
+    
+    .hero-section > button:first-of-type span {
+        font-size: 16px !important;
+    }
+    
+    /* 标题保持居中 */
+    .hero-section .badge,
+    .hero-section .hero-title,
+    .hero-section .hero-subtitle {
+        text-align: center;
+    }
 }
