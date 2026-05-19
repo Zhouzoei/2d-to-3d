@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import SketchCanvasNative from './SketchCanvasNative';
 import TextInput from './TextInput';
 import ImagePreview from './ImagePreview';
@@ -7,457 +7,95 @@ import WelcomeScreen from './WelcomeScreen';
 import OnboardingTooltip from './OnboardingTooltip';
 import AuthModal from './AuthModal';
 import { UserProvider, useUser } from './UserContext';
+import useAppState from './hooks/useAppState';
+import STYLE_PRESETS from './config/stylePresets';
 import './App.css';
 import CropModal from './CropModal';
 import HistoryModal from './HistoryModal';
 
-// API 地址
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
-// 过期天数配置
-const EXPIRE_DAYS = 7;
-
-// 主应用内容组件（需要访问用户上下文）
 const AppContent = () => {
-    const { currentUser, incrementGenCount } = useUser();
-    const [showAuthModal, setShowAuthModal] = useState(false);
-    const [showCropModal, setShowCropModal] = useState(false);
-    const [tempSketchData, setTempSketchData] = useState(null); // 暂存原始草图
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
-    
-    // ... 其他 state 保持不变
-    const [showWelcome, setShowWelcome] = useState(() => {
-        const lastVisit = localStorage.getItem('lastVisit');
-        const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-        
-        if (!hasSeenWelcome) return true;
-        if (lastVisit) {
-            const daysSinceLastVisit = (Date.now() - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
-            if (daysSinceLastVisit >= EXPIRE_DAYS) {
-                localStorage.removeItem('hasSeenWelcome');
-                localStorage.removeItem('hasSeenOnboarding');
-                return true;
-            }
-        }
-        return false;
-    });
-
-    const [showOnboarding, setShowOnboarding] = useState(() => {
-        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-        const lastVisit = localStorage.getItem('lastVisit');
-        if (showWelcome) return false;
-        if (!hasSeenOnboarding) return true;
-        if (lastVisit) {
-            const daysSinceLastVisit = (Date.now() - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
-            if (daysSinceLastVisit >= EXPIRE_DAYS) {
-                localStorage.removeItem('hasSeenOnboarding');
-                return true;
-            }
-        }
-        return false;
-    });
-
-    const [sketchData, setSketchData] = useState(null);
-    const [prompt, setPrompt] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [selectedStyle, setSelectedStyle] = useState('奇幻');
-    const [creativity, setCreativity] = useState(0.7);
-    const [geometryDetail, setGeometryDetail] = useState(0.8);
-    const [textureQuality, setTextureQuality] = useState(0.9);
-    const [generatedImage, setGeneratedImage] = useState(null);
-    const [generationStatus, setGenerationStatus] = useState({
-        sketch: 'done',
-        character: 'pending',
-        model: 'pending'
-    });
-    const [progress, setProgress] = useState(0);
-    const [error, setError] = useState(null);
-
-    const testModelUrl = '/assets/3d-character.obj';
-
-    const handleEnterApp = () => {
-        setShowWelcome(false);
-        localStorage.setItem('hasSeenWelcome', 'true');
-        localStorage.setItem('lastVisit', Date.now().toString());
-        
-        const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-        if (!hasSeenOnboarding) {
-            setShowOnboarding(true);
-        }
-    };
-
-    const handleOnboardingComplete = () => {
-        setShowOnboarding(false);
-        localStorage.setItem('hasSeenOnboarding', 'true');
-    };
-
-    const handleOnboardingSkip = () => {
-        setShowOnboarding(false);
-        localStorage.setItem('hasSeenOnboarding', 'true');
-    };
-
-    const handleSketchChange = (dataURL) => {
-        setSketchData(dataURL);
-        setGeneratedImage(null);
-        setError(null);
-        setGenerationStatus({
-            sketch: 'done',
-            character: 'pending',
-            model: 'pending'
-        });
-        setProgress(0);
-    };
-
-    // 修改 handleGenerate - 打开裁剪弹窗
-    const handleGenerate = () => {
-        if (!sketchData) {
-            alert('请先绘制草图');
-            return;
-        }
-        if (!prompt.trim()) {
-            alert('请输入文字描述');
-            return;
-        }
-        // 打开裁剪弹窗，暂存原始草图
-        setTempSketchData(sketchData);
-        setShowCropModal(true);
-    };
-
-    // 裁剪确认后的回调 - 继续生成
-    const handleCropConfirm = async (croppedImageData) => {
-        setShowCropModal(false);
-        // 更新 sketchData 为裁剪后的图片
-        setSketchData(croppedImageData);
-        // 继续生成流程
-        await continueGenerate(croppedImageData);
-    };
-
-    // 实际的生成逻辑（提取出来）
-    const continueGenerate = async (finalSketchData) => {
-        setLoading(true);
-        setError(null);
-        setGenerationStatus({
-            sketch: 'done',
-            character: 'active',
-            model: 'pending'
-        });
-        setProgress(20);
-
-        try {
-            const blob = await (await fetch(finalSketchData)).blob();
-            const file = new File([blob], 'sketch.png', { type: 'image/png' });
-
-            const formData = new FormData();
-            formData.append('sketch', file);
-            formData.append('prompt', prompt);
-            formData.append('creativity', creativity.toString());
-            formData.append('geometry_detail', geometryDetail.toString());
-            formData.append('texture_quality', textureQuality.toString());
-
-            setProgress(40);
-
-            const response = await fetch(`${API_URL}/generate`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            setProgress(70);
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `服务器错误：${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.image_base64) {
-                const imageUrl = `data:image/png;base64,${data.image_base64}`;
-                setGeneratedImage(imageUrl);
-                saveToHistory(imageUrl, prompt, selectedStyle, creativity, geometryDetail, textureQuality);
-                setGenerationStatus({
-                    sketch: 'done',
-                    character: 'done',
-                    model: 'pending'
-                });
-                setProgress(100);
-                setTimeout(() => setProgress(0), 2000);
-                
-                // 生成成功，增加用户统计
-                if (currentUser) {
-                    incrementGenCount();
-                }
-            } else {
-                throw new Error('后端未返回图片数据');
-            }
-        } catch (err) {
-            console.error('生成失败:', err);
-            setError(err.message);
-            setGenerationStatus({
-                sketch: 'done',
-                character: 'error',
-                model: 'pending'
-            });
-            setProgress(0);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDownload2D = () => {
-        if (!generatedImage) {
-            alert('没有可下载的图片，请先生成');
-            return;
-        }
-        const link = document.createElement('a');
-        link.download = '2d-character.png';
-        link.href = generatedImage;
-        link.click();
-    };
-
-    const downloadFile = async (url, filename) => {
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const link = document.createElement('a');
-            const objectUrl = URL.createObjectURL(blob);
-            link.href = objectUrl;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(objectUrl);
-            return true;
-        } catch (error) {
-            console.error(`下载 ${filename} 失败:`, error);
-            return false;
-        }
-    };
-
-    const handleDownload3D = async () => {
-        setIsDownloading(true);
-        try {
-            await downloadFile('/assets/3d-character.obj', '3d-character.obj');
-            await downloadFile('/assets/3d-character.mtl', '3d-character.mtl');
-            await downloadFile('/assets/3d-character.BMP', '3d-character.BMP');
-            alert('3D 模型下载完成！');
-        } catch (error) {
-            console.error('下载失败:', error);
-            alert('下载失败');
-        } finally {
-            setIsDownloading(false);
-        }
-    };
-
-    const getTextureQualityText = (val) => {
-        if (val >= 0.7) return '高';
-        if (val >= 0.4) return '中';
-        return '低';
-    };
-
-    const handleStyleClick = (style) => {
-        setSelectedStyle(style);
-        const stylePrompts = {
-            '奇幻': 'fantasy character, magical, glowing elements, detailed armor, epic fantasy art style',
-            '科幻': 'sci-fi character, cyberpunk, neon lights, futuristic armor, mecha details',
-            '可爱': 'cute character, chibi style, big eyes, adorable, soft colors, kawaii',
-            '写实': 'realistic character, detailed texture, natural lighting, PBR, photorealistic'
-        };
-        if (stylePrompts[style]) setPrompt(stylePrompts[style]);
-    };
+    const {
+        showWelcome, showOnboarding, showAuthModal, showCropModal, showHistoryModal,
+        tempSketchData, sketchData, loading, isDownloading, selectedStyle,
+        creativity, geometryDetail, textureQuality, generatedImage, generatedImages,
+        selectedVariantIndex, confirmedImage, show3DPreview, genMode,
+        generatedModels, selectedModelIndex,
+        generationStatus, progress, error, currentModelUrl,
+        setShowAuthModal, setShowCropModal, setShowHistoryModal,
+        prompt, setPrompt, setCreativity, setGeometryDetail, setTextureQuality,
+        setGenMode,
+        handleEnterApp, handleOnboardingComplete, handleOnboardingSkip,
+        handleSketchChange, handleGenerate, handleCropConfirm,
+        handleRegenerate, handleSelectVariant, handleConfirm2D, handleProceedTo3D,
+        handleRegenerate3D, handleSelectModel,
+        handleDownload2D, handleDownload3D, getTextureQualityText,
+        handleStyleClick, handleLoadRecord,
+    } = useAppState();
+    const { currentUser } = useUser();
 
     const titleChars = '绘灵造物'.split('');
     const badgeChars = '✦ 绘影 · Spirit Brush ✦'.split('');
     const subtitleChars = '手绘草图 + 文字描述 → 2D角色 → 3D模型'.split('');
 
-// 保存生成记录的函数
-    const saveToHistory = (generatedImageUrl, prompt, style, creativity, geometryDetail, textureQuality) => {
-        // 生成缩略图（100x100）
-        const createThumbnail = (dataUrl, callback) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const size = 100;
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                const minSide = Math.min(img.width, img.height);
-                const sx = (img.width - minSide) / 2;
-                const sy = (img.height - minSide) / 2;
-                ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-                callback(canvas.toDataURL('image/jpeg', 0.7));
-            };
-            img.src = dataUrl;
-        };
-
-        createThumbnail(generatedImageUrl, (thumbnail) => {
-            const newRecord = {
-                id: Date.now(),
-                createdAt: new Date().toLocaleString(),
-                thumbnail: thumbnail,
-                fullImage: generatedImageUrl,
-                prompt: prompt,
-                style: style,
-                creativity: creativity,
-                geometryDetail: geometryDetail,
-                textureQuality: textureQuality,
-                isFavorite: false
-            };
-
-            const stored = localStorage.getItem('generateHistory');
-            let history = stored ? JSON.parse(stored) : [];
-            history.unshift(newRecord); // 添加到开头
-            
-            // 限制最多保存50条
-            if (history.length > 50) {
-                history = history.slice(0, 50);
-            }
-            
-            localStorage.setItem('generateHistory', JSON.stringify(history));
-        });
-    };
-
-// 加载历史记录到界面
-    const handleLoadRecord = (record) => {
-        setGeneratedImage(record.fullImage);
-        setPrompt(record.prompt);
-        setSelectedStyle(record.style);
-        setCreativity(record.creativity);
-        setGeometryDetail(record.geometryDetail);
-        setTextureQuality(record.textureQuality);
-    };
-
     return (
         <>
-            {/* 欢迎页 */}
             {showWelcome && <WelcomeScreen onEnter={handleEnterApp} />}
-            
-            {/* 主应用 */}
+
             <div className="app" style={{ display: showWelcome ? 'none' : 'block' }}>
-                {/* 引导提示 */}
                 {showOnboarding && (
-                    <OnboardingTooltip 
+                    <OnboardingTooltip
                         onComplete={handleOnboardingComplete}
                         onSkip={handleOnboardingSkip}
                     />
                 )}
-                {/* 裁剪弹窗 */}
                 <CropModal
                     isOpen={showCropModal}
                     onClose={() => setShowCropModal(false)}
                     sketchData={tempSketchData}
                     onConfirm={handleCropConfirm}
                 />
-                {/* 登录弹窗 */}
                 <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-                {/* 历史记录弹窗 */}
-                <HistoryModal 
+                <HistoryModal
                     isOpen={showHistoryModal}
                     onClose={() => setShowHistoryModal(false)}
                     onLoadRecord={handleLoadRecord}
-                />                
+                />
                 <div className="main-content">
-                    {/* 头部 - 带用户按钮和历史记录按钮 */}
-                    <div className="hero-section" style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: '12px', zIndex: 100 }}></div>
-                            {/*历史记录按钮 */}
-                            <button 
-                            onClick={() => setShowHistoryModal(true)}
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                top: '20%',              // 从 50% 改成 30%，往上提
-                                transform: 'translateY(-50%)',
-                                background: '#21505c27',
-                                backdropFilter: 'blur(4px)',
-                                border: '3px solid rgba(233, 236, 237, 0.8)',
-                                borderRadius: '40px',
-                                padding: '8px 25px',
-                                marginLeft: '140px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '56px',
-                                gap: '8px',
-                                transition: 'all 0.3s',
-                                boxShadow: '0 20px 40px rgba(100, 120, 140, 0.25), 0 5px 15px rgba(100, 120, 140, 0.08)',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#0a2a3344';  // 悬停时更深/更明显
-                                e.currentTarget.style.borderColor = 'rgba(225, 223, 223, 0.9)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = '#0a2a3327';  // 恢复原来的背景色
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-                            }}
-                        >
-                            <span style={{ fontSize: '20px', fontWeight: 600, color: '#1a1a1b' ,letterSpacing: '2px'}}>
-                            生成记录
-                            </span> 
-                            
-                        </button>
-                        {/*用户按钮 */}
-                        <button 
-                            className="user-btn" 
-                            onClick={() => setShowAuthModal(true)}
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                top: '20%',              // 从 50% 改成 30%，往上提
-                                transform: 'translateY(-50%)',
-                                background: 'rgba(172, 229, 238, 0.6)',
-                                backdropFilter: 'blur(4px)',
-                                border: '3px solid rgba(255, 255, 255, 0.8)',
-                                borderRadius: '40px',
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.3s',
-                                zIndex: 100,
-                                boxShadow: '0 20px 40px rgba(100, 120, 140, 0.25), 0 5px 15px rgba(100, 120, 140, 0.08)',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(172, 229, 238, 0.9)';
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.9)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(172, 229, 238, 0.6)';
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-                            }}
-                        >
-                            {/* 头像带圆圈的样式 */}
-                            <span style={{
-                                fontSize: '22px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #2C8A9A, #9B6FB0)',
-                                color: 'white',
-                                fontWeight: 'bold'
-                            }}>
-                                {currentUser ? (currentUser.name?.charAt(0).toUpperCase() || '👤') : '👤'}
-                            </span>
-                            <span style={{ fontSize: '18px', fontWeight: 600, color: '#236e7f' }}>
-                                {currentUser ? (currentUser.name || currentUser.email?.split('@')[0]) : '登录'}
-                            </span>
-                        </button>
-                        
-                        <div className="badge" style={{ display: 'block', textAlign: 'center', width: 'fit-content', margin: '0 auto 20px' }}>
-                            {badgeChars.map((char, i) => (
-                                <span key={i} className="wave-char" style={{ '--delay': i }}>
-                                    {char}
-                                </span>
-                            ))}
-                        </div>
-                        <div className="hero-title">
-                            {titleChars.map((char, i) => (
-                                <span key={i} className="title-char">{char}</span>
-                            ))}
+                    <div className="hero-section">
+                        <div className="hero-header-row">
+                            <div className="hero-header-side">
+                                <button
+                                    className="header-btn history-btn"
+                                    onClick={() => setShowHistoryModal(true)}
+                                >
+                                    <span>生成记录</span>
+                                </button>
+                                <button
+                                    className="header-btn user-btn"
+                                    onClick={() => setShowAuthModal(true)}
+                                >
+                                    <span className="user-avatar">
+                                        {currentUser ? (currentUser.name?.charAt(0).toUpperCase() || '👤') : '👤'}
+                                    </span>
+                                    <span className="user-name">
+                                        {currentUser ? (currentUser.name || currentUser.email?.split('@')[0]) : '登录'}
+                                    </span>
+                                </button>
+                            </div>
+                            <div className="hero-header-center">
+                                <div className="badge">
+                                    {badgeChars.map((char, i) => (
+                                        <span key={i} className="wave-char" style={{ '--delay': i }}>
+                                            {char}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="hero-title">
+                                    {titleChars.map((char, i) => (
+                                        <span key={i} className="title-char">{char}</span>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                         <p className="hero-subtitle">
                             {subtitleChars.map((char, i) => (
@@ -468,9 +106,7 @@ const AppContent = () => {
                         </p>
                     </div>
 
-                    {/* 其余主应用内容保持不变 */}
                     <div className="top-double-layout">
-                        {/* 左侧：灵动画布卡片 */}
                         <div className="sketch-col">
                             <div className="card sketch-card-full">
                                 <div className="card-header">
@@ -484,6 +120,20 @@ const AppContent = () => {
                                     <div className="prompt-wrapper">
                                         <TextInput value={prompt} onChange={setPrompt} />
                                     </div>
+                                    <div className="gen-mode-selector">
+                                        <button
+                                            className={`gen-mode-btn ${genMode === '2d' ? 'active' : ''}`}
+                                            onClick={() => setGenMode('2d')}
+                                        >
+                                            仅2d
+                                        </button>
+                                        <button
+                                            className={`gen-mode-btn ${genMode === '2d3d' ? 'active' : ''}`}
+                                            onClick={() => setGenMode('2d3d')}
+                                        >
+                                            2d和3d
+                                        </button>
+                                    </div>
                                     <button
                                         className="generate-button"
                                         onClick={handleGenerate}
@@ -495,7 +145,6 @@ const AppContent = () => {
                             </div>
                         </div>
 
-                        {/* 右侧：三个参数卡片 */}
                         <div className="params-col">
                             <div className="card">
                                 <div className="card-header">
@@ -504,13 +153,13 @@ const AppContent = () => {
                                 </div>
                                 <div className="card-content">
                                     <div className="style-grid">
-                                        {['奇幻', '科幻', '可爱', '写实'].map(style => (
+                                        {STYLE_PRESETS.map(preset => (
                                             <div
-                                                key={style}
-                                                className={`style-chip ${selectedStyle === style ? 'active' : ''}`}
-                                                onClick={() => handleStyleClick(style)}
+                                                key={preset.key}
+                                                className={`style-chip ${selectedStyle === preset.key ? 'active' : ''}`}
+                                                onClick={() => handleStyleClick(preset.key)}
                                             >
-                                                {style}
+                                                {preset.label}
                                             </div>
                                         ))}
                                     </div>
@@ -621,8 +270,43 @@ const AppContent = () => {
                                 <div className="card-content preview-card-content">
                                     <div className="preview-area">
                                         <ImagePreview imageUrl={generatedImage} loading={loading} />
+                                        <div className="preview-hint">
+                                            <span>鼠标拖拽移动 · 按钮缩放</span>
+                                        </div>
                                     </div>
-                                    <div className="info-text">鼠标拖拽移动 | 按钮缩放</div>
+                                    {generatedImages.length > 0 && (
+                                        <div className="variant-section">
+                                            <div className="variant-strip">
+                                                {generatedImages.map((img, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`variant-thumb ${selectedVariantIndex === i ? 'active' : ''}`}
+                                                        onClick={() => handleSelectVariant(i)}
+                                                    >
+                                                        <img src={img} alt={`变体 ${i + 1}`} />
+                                                        <span className="variant-num">{i + 1}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="variant-actions">
+                                                <button
+                                                    className="variant-btn regenerate-btn"
+                                                    onClick={handleRegenerate}
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? '生成中...' : '重新生成'}
+                                                </button>
+                                                {!confirmedImage && (
+                                                    <button
+                                                        className="variant-btn proceed-btn"
+                                                        onClick={handleConfirm2D}
+                                                    >
+                                                        继续生成3d
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                     <button
                                         className="download-btn"
                                         onClick={handleDownload2D}
@@ -642,13 +326,62 @@ const AppContent = () => {
                                 </div>
                                 <div className="card-content preview-card-content">
                                     <div className="preview-area model-preview-area">
-                                        <Model3DPreview modelUrl={testModelUrl} loading={loading} />
+                                        {show3DPreview ? (
+                                            <Model3DPreview modelUrl={currentModelUrl} loading={loading} />
+                                        ) : (
+                                            <div className="preview-placeholder">
+                                                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '8px', opacity: 0.6 }}>
+                                                    <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="#2C5F6B" strokeWidth="1.2" fill="none" />
+                                                    <path d="M2 7l10 5 10-5" stroke="#2C5F6B" strokeWidth="1.2" fill="none" />
+                                                    <path d="M12 22V12" stroke="#2C5F6B" strokeWidth="1.2" fill="none" />
+                                                </svg>
+                                                <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                                                    {confirmedImage ? '3D 模型生成中...' : '等待 2D 角色确认'}
+                                                </div>
+                                                <div style={{ fontSize: '11px', marginTop: '6px' }}>
+                                                    {confirmedImage ? '正在重建 3D 网格' : '选择 2D 结果后自动重建'}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="preview-hint">
+                                            <span>鼠标拖拽旋转 · 滚轮缩放 · PBR 材质</span>
+                                        </div>
                                     </div>
-                                    <div className="info-text">鼠标拖拽旋转 · 滚轮缩放 · PBR 材质</div>
+                                    {show3DPreview && generatedModels.length > 0 && (
+                                        <div className="variant-section">
+                                            <div className="variant-strip">
+                                                {generatedModels.map((model, i) => (
+                                                    <div
+                                                        key={model.id}
+                                                        className={`variant-thumb ${selectedModelIndex === i ? 'active' : ''}`}
+                                                        onClick={() => handleSelectModel(i)}
+                                                    >
+                                                        <div className="variant-thumb-3d">
+                                                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                                                                <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                                                                <path d="M2 7l10 5 10-5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                                                                <path d="M12 22V12" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="variant-num">{i + 1}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="variant-actions">
+                                                <button
+                                                    className="variant-btn regenerate-btn"
+                                                    onClick={handleRegenerate3D}
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? '生成中...' : '重新生成3d'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                     <button
                                         className="download-btn"
                                         onClick={handleDownload3D}
-                                        disabled={isDownloading || loading}
+                                        disabled={isDownloading || loading || !show3DPreview}
                                     >
                                         {isDownloading ? '下载中...' : '下载 3D 模型 ↓'}
                                     </button>
@@ -664,7 +397,6 @@ const AppContent = () => {
     );
 };
 
-// 主 App 组件，用 UserProvider 包裹
 function App() {
     return (
         <UserProvider>

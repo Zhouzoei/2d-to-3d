@@ -11,21 +11,23 @@ const DISPLAY_MODES = {
 };
 
 const Model3DPreview = ({ modelUrl, loading }) => {
+  const isMock = typeof modelUrl === 'string' && modelUrl.startsWith('data:image/');
+
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
   const modelRef = useRef(null);
-  
+
   const [displayMode, setDisplayMode] = useState(DISPLAY_MODES.TEXTURED);
+  const [error, setError] = useState(null);
   const originalMaterialsRef = useRef(new Map());
 
-  // 切换显示模式
   const switchDisplayMode = (mode) => {
     if (!modelRef.current) return;
     setDisplayMode(mode);
-    
+
     modelRef.current.traverse((child) => {
       if (child.isMesh) {
         switch (mode) {
@@ -57,8 +59,8 @@ const Model3DPreview = ({ modelUrl, loading }) => {
     });
   };
 
-  // 初始化 Three.js 场景
   useEffect(() => {
+    if (isMock) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -93,19 +95,18 @@ const Model3DPreview = ({ modelUrl, loading }) => {
     controls.target.set(0, 1, 0);
     controlsRef.current = controls;
 
-    // 灯光系统
     const ambientLight = new THREE.AmbientLight(0x404060);
     scene.add(ambientLight);
-    
+
     const mainLight = new THREE.DirectionalLight(0xffffff, 1);
     mainLight.position.set(2, 5, 3);
     mainLight.castShadow = true;
     scene.add(mainLight);
-    
+
     const fillLight = new THREE.PointLight(0x4488ff, 0.3);
     fillLight.position.set(1, 1, 2);
     scene.add(fillLight);
-    
+
     const gridHelper = new THREE.GridHelper(5, 20, 0x888888, 0xaaaaaa);
     gridHelper.position.y = -0.8;
     scene.add(gridHelper);
@@ -128,7 +129,7 @@ const Model3DPreview = ({ modelUrl, loading }) => {
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(newWidth, newHeight);
     };
-    
+
     window.addEventListener('resize', handleResize);
     setTimeout(handleResize, 100);
 
@@ -141,31 +142,30 @@ const Model3DPreview = ({ modelUrl, loading }) => {
       if (rendererRef.current) rendererRef.current.dispose();
       if (controlsRef.current) controlsRef.current.dispose();
     };
-  }, []);
+  }, [isMock]);
 
-  // 加载模型
   useEffect(() => {
-    if (!modelUrl || !sceneRef.current) return;
-    
+    if (!modelUrl || !sceneRef.current || isMock) return;
+
     const scene = sceneRef.current;
     const controls = controlsRef.current;
     const camera = cameraRef.current;
-    
+
     if (modelRef.current) {
       scene.remove(modelRef.current);
       modelRef.current = null;
     }
     originalMaterialsRef.current.clear();
-    
+
     const objLoader = new OBJLoader();
     const mtlLoader = new MTLLoader();
     const basePath = modelUrl.substring(0, modelUrl.lastIndexOf('/') + 1);
     const objFileName = modelUrl.substring(modelUrl.lastIndexOf('/') + 1);
     const mtlUrl = basePath + objFileName.replace('.obj', '.mtl');
-    
+
     const loadObj = (loader, materials = null) => {
       if (materials) loader.setMaterials(materials);
-      
+
       loader.load(modelUrl, (obj) => {
         obj.traverse((child) => {
           if (child.isMesh) {
@@ -179,16 +179,16 @@ const Model3DPreview = ({ modelUrl, loading }) => {
             }
           }
         });
-        
+
         scene.add(obj);
         modelRef.current = obj;
-        
+
         const box = new THREE.Box3().setFromObject(obj);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         const distance = maxDim * 1.8;
-        
+
         camera.position.set(distance * 0.8, distance * 0.6, distance);
         camera.lookAt(center);
         if (controls) {
@@ -197,59 +197,39 @@ const Model3DPreview = ({ modelUrl, loading }) => {
         }
       }, undefined, (error) => console.error('OBJ加载失败:', error));
     };
-    
+
     mtlLoader.load(mtlUrl, (materials) => {
       materials.preload();
       loadObj(objLoader, materials);
     }, undefined, () => loadObj(objLoader));
-  }, [modelUrl]);
 
-  if (loading) {
+  }, [modelUrl, isMock]);
+
+  if (isMock) {
     return (
-      <div className="preview-placeholder">
-        <div className="spinner"></div>
-        <p>加载 3D 模型中...</p>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <img
+          src={modelUrl}
+          alt="3D Preview"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
       </div>
     );
   }
-  
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* 模式切换按钮 - 使用文字 */}
-      <div className="mode-toolbar">
-        <button 
-          className={`mode-btn-text ${displayMode === 'textured' ? 'active' : ''}`}
-          onClick={() => switchDisplayMode('textured')}
-          title="贴图模式"
-        >
-          贴图
-        </button>
-        <button 
-          className={`mode-btn-text ${displayMode === 'white' ? 'active' : ''}`}
-          onClick={() => switchDisplayMode('white')}
-          title="白膜模式"
-        >
-          白膜
-        </button>
-        <button 
-          className={`mode-btn-text ${displayMode === 'wireframe' ? 'active' : ''}`}
-          onClick={() => switchDisplayMode('wireframe')}
-          title="线框模式"
-        >
-          线框
-        </button>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div className="mode-toolbar" style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8, zIndex: 10 }}>
+        {[DISPLAY_MODES.TEXTURED, DISPLAY_MODES.WHITE, DISPLAY_MODES.WIREFRAME].map(mode => (
+          <button
+            key={mode}
+            className={`mode-btn-text ${displayMode === mode ? 'active' : ''}`}
+            onClick={() => switchDisplayMode(mode)}
+          >
+            {mode === DISPLAY_MODES.TEXTURED ? '材质' : mode === DISPLAY_MODES.WHITE ? '白模' : '线框'}
+          </button>
+        ))}
       </div>
-      
-      <div 
-        ref={containerRef} 
-        style={{ 
-          width: '100%', 
-          height: '100%', 
-          borderRadius: '16px', 
-          overflow: 'hidden',
-          cursor: 'grab'
-        }}
-      />
     </div>
   );
 };

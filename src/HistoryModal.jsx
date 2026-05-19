@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useUser } from './UserContext';
 import './HistoryModal.css';
 
 const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const [history, setHistory] = useState([]);
-    const [filter, setFilter] = useState('all'); // all, favorite
+    const [filter, setFilter] = useState('all');
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const { incrementFavCount } = useUser();
 
-    // 加载历史记录
     useEffect(() => {
         if (isOpen) {
             loadHistory();
@@ -16,7 +18,6 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         const stored = localStorage.getItem('generateHistory');
         if (stored) {
             const records = JSON.parse(stored);
-            // 按时间倒序排列（最新的在前）
             records.sort((a, b) => b.id - a.id);
             setHistory(records);
         } else {
@@ -24,7 +25,6 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         }
     };
 
-    // 删除单条记录
     const handleDelete = (id, e) => {
         e.stopPropagation();
         const newHistory = history.filter(record => record.id !== id);
@@ -32,12 +32,13 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         localStorage.setItem('generateHistory', JSON.stringify(newHistory));
     };
 
-    // 收藏/取消收藏
     const handleFavorite = (id, e) => {
         e.stopPropagation();
         const newHistory = history.map(record => {
             if (record.id === id) {
-                return { ...record, isFavorite: !record.isFavorite };
+                const newFav = !record.isFavorite;
+                if (newFav && incrementFavCount) incrementFavCount();
+                return { ...record, isFavorite: newFav };
             }
             return record;
         });
@@ -45,22 +46,23 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         localStorage.setItem('generateHistory', JSON.stringify(newHistory));
     };
 
-    // 加载记录到主界面
     const handleLoadRecord = (record) => {
         onLoadRecord(record);
         onClose();
     };
 
-    // 清空所有记录
     const handleClearAll = () => {
-        if (window.confirm('确定要清空所有生成记录吗？')) {
-            localStorage.removeItem('generateHistory');
-            setHistory([]);
-        }
+        setShowClearConfirm(true);
     };
 
-    const displayHistory = filter === 'favorite' 
-        ? history.filter(r => r.isFavorite) 
+    const confirmClearAll = () => {
+        localStorage.removeItem('generateHistory');
+        setHistory([]);
+        setShowClearConfirm(false);
+    };
+
+    const displayHistory = filter === 'favorite'
+        ? history.filter(r => r.isFavorite)
         : history;
 
     if (!isOpen) return null;
@@ -75,13 +77,13 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
 
                 <div className="history-toolbar">
                     <div className="history-tabs">
-                        <button 
+                        <button
                             className={`history-tab ${filter === 'all' ? 'active' : ''}`}
                             onClick={() => setFilter('all')}
                         >
                             全部 ({history.length})
                         </button>
-                        <button 
+                        <button
                             className={`history-tab ${filter === 'favorite' ? 'active' : ''}`}
                             onClick={() => setFilter('favorite')}
                         >
@@ -104,8 +106,8 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                         </div>
                     ) : (
                         displayHistory.map(record => (
-                            <div 
-                                key={record.id} 
+                            <div
+                                key={record.id}
                                 className="history-item"
                                 onClick={() => handleLoadRecord(record)}
                             >
@@ -118,14 +120,14 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                     <div className="history-item-time">{record.createdAt}</div>
                                 </div>
                                 <div className="history-item-actions">
-                                    <button 
+                                    <button
                                         className={`history-fav-btn ${record.isFavorite ? 'active' : ''}`}
                                         onClick={(e) => handleFavorite(record.id, e)}
                                         title={record.isFavorite ? '取消收藏' : '收藏'}
                                     >
                                         {record.isFavorite ? '★' : '☆'}
                                     </button>
-                                    <button 
+                                    <button
                                         className="history-delete-btn"
                                         onClick={(e) => handleDelete(record.id, e)}
                                         title="删除"
@@ -137,6 +139,30 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                         ))
                     )}
                 </div>
+
+                {showClearConfirm && (
+                    <div className="clear-overlay" onClick={() => setShowClearConfirm(false)}>
+                        <div className="clear-confirm" onClick={(e) => e.stopPropagation()}>
+                            <div className="clear-confirm-icon">⚠️</div>
+                            <div className="clear-confirm-title">确认清空</div>
+                            <div className="clear-confirm-desc">此操作将永久删除所有生成记录，无法恢复。</div>
+                            <div className="clear-confirm-actions">
+                                <button
+                                    className="clear-confirm-cancel"
+                                    onClick={() => setShowClearConfirm(false)}
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    className="clear-confirm-delete"
+                                    onClick={confirmClearAll}
+                                >
+                                    确认清空
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

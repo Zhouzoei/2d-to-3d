@@ -302,6 +302,99 @@
 }
 
 /* ============================================
+   清空确认弹窗
+   ============================================ */
+.clear-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: clearFadeIn 0.2s ease;
+}
+
+@keyframes clearFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.clear-confirm {
+    background: #C5E8ED;
+    border-radius: 24px;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: clearScaleIn 0.3s ease;
+}
+
+@keyframes clearScaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.clear-confirm-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+}
+
+.clear-confirm-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0A2A33;
+    margin-bottom: 12px;
+}
+
+.clear-confirm-desc {
+    font-size: 18px;
+    font-weight: 500;
+    color: #e74c3c;
+    margin-bottom: 28px;
+    line-height: 1.5;
+}
+
+.clear-confirm-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.clear-confirm-cancel,
+.clear-confirm-delete {
+    padding: 12px 32px;
+    border-radius: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.clear-confirm-cancel {
+    background: rgba(255, 255, 255, 0.6);
+    color: #1A4A55;
+}
+
+.clear-confirm-cancel:hover {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.clear-confirm-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.clear-confirm-delete:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+/* ============================================
    响应式
    ============================================ */
 

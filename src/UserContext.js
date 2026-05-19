@@ -42,9 +42,19 @@ export const UserProvider = ({ children }) => {
         localStorage.setItem('userStats', JSON.stringify(stats));
     };
 
+    // 简单哈希函数（前端 demo 使用，生产环境应使用 bcrypt + HTTPS）
+    const hashPassword = (password) => {
+        let hash = 0;
+        for (let i = 0; i < password.length; i++) {
+            const char = password.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return 'h_' + Math.abs(hash).toString(36);
+    };
+
     // 注册
     const register = (name, email, password) => {
-        // 检查邮箱是否已存在
         if (users.find(u => u.email === email)) {
             return { success: false, message: '该邮箱已注册' };
         }
@@ -53,15 +63,13 @@ export const UserProvider = ({ children }) => {
             return { success: false, message: '密码至少需要6位' };
         }
 
-        const newUser = { name, email, password };
+        const newUser = { name, email, passwordHash: hashPassword(password) };
         const newUsers = [...users, newUser];
         saveUsers(newUsers);
         
-        // 自动登录
         const loginUser = { name, email };
         saveCurrentUser(loginUser);
         
-        // 初始化统计数据
         const newStats = { ...userStats, [email]: { genCount: 0, favCount: 0 } };
         saveUserStats(newStats);
         
@@ -70,7 +78,8 @@ export const UserProvider = ({ children }) => {
 
     // 登录
     const login = (email, password) => {
-        const user = users.find(u => u.email === email && u.password === password);
+        const hashedInput = hashPassword(password);
+        const user = users.find(u => u.email === email && u.passwordHash === hashedInput);
         if (user) {
             const loginUser = { name: user.name, email: user.email };
             saveCurrentUser(loginUser);
@@ -114,7 +123,16 @@ export const UserProvider = ({ children }) => {
     // 获取当前用户统计
     const getUserStats = () => {
         if (currentUser) {
-            return userStats[currentUser.email] || { genCount: 0, favCount: 0 };
+            const stats = userStats[currentUser.email] || { genCount: 0, favCount: 0 };
+            const stored = localStorage.getItem('generateHistory');
+            let realFavCount = 0;
+            if (stored) {
+                try {
+                    const history = JSON.parse(stored);
+                    realFavCount = history.filter(r => r.isFavorite).length;
+                } catch (e) {}
+            }
+            return { genCount: stats.genCount, favCount: realFavCount };
         }
         return { genCount: 0, favCount: 0 };
     };
