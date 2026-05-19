@@ -18,18 +18,23 @@ const AppContent = () => {
         showWelcome, showOnboarding, showAuthModal, showCropModal, showHistoryModal,
         tempSketchData, sketchData, loading, isDownloading, selectedStyle,
         creativity, geometryDetail, textureQuality, generatedImage, generatedImages,
-        selectedVariantIndex, confirmedImage, show3DPreview, genMode,
+        selectedVariantIndex, confirmedImage, show3DPreview,
         generatedModels, selectedModelIndex,
         generationStatus, progress, error, currentModelUrl,
         setShowAuthModal, setShowCropModal, setShowHistoryModal,
         prompt, setPrompt, setCreativity, setGeometryDetail, setTextureQuality,
-        setGenMode,
         handleEnterApp, handleOnboardingComplete, handleOnboardingSkip,
         handleSketchChange, handleGenerate, handleCropConfirm,
-        handleRegenerate, handleSelectVariant, handleConfirm2D, handleProceedTo3D,
+        handleRegenerate, handleSelectVariant, handleConfirm2D,
+        handleDeleteVariant,
         handleRegenerate3D, handleSelectModel,
+        handleDeleteModel,
         handleDownload2D, handleDownload3D, getTextureQualityText,
-        handleStyleClick, handleLoadRecord,
+        handleStyleClick, getStyleLabel,
+        isEditMode, editingKey, editingLabel, editingPrompt, hasEdits,
+        handleEditFieldChange, handleApplyEdit, handleCancelEdit,
+        handleSavePresets, handleCancelEdits,
+        handleLoadRecord,
     } = useAppState();
     const { currentUser } = useUser();
 
@@ -118,21 +123,7 @@ const AppContent = () => {
                                         <SketchCanvasNative onSketchChange={handleSketchChange} />
                                     </div>
                                     <div className="prompt-wrapper">
-                                        <TextInput value={prompt} onChange={setPrompt} />
-                                    </div>
-                                    <div className="gen-mode-selector">
-                                        <button
-                                            className={`gen-mode-btn ${genMode === '2d' ? 'active' : ''}`}
-                                            onClick={() => setGenMode('2d')}
-                                        >
-                                            仅2d
-                                        </button>
-                                        <button
-                                            className={`gen-mode-btn ${genMode === '2d3d' ? 'active' : ''}`}
-                                            onClick={() => setGenMode('2d3d')}
-                                        >
-                                            2d和3d
-                                        </button>
+                                        <TextInput value={prompt} onChange={setPrompt} selectedStyle={selectedStyle} getStyleLabel={getStyleLabel} />
                                     </div>
                                     <button
                                         className="generate-button"
@@ -156,13 +147,51 @@ const AppContent = () => {
                                         {STYLE_PRESETS.map(preset => (
                                             <div
                                                 key={preset.key}
-                                                className={`style-chip ${selectedStyle === preset.key ? 'active' : ''}`}
+                                                className={`style-chip ${selectedStyle === preset.key ? 'active' : ''} ${preset.key === '自定义' ? 'preset-custom' : ''} ${isEditMode && preset.key !== '自定义' ? 'editable' : ''}`}
                                                 onClick={() => handleStyleClick(preset.key)}
                                             >
-                                                {preset.label}
+                                                {preset.key === '自定义' ? (isEditMode ? '退出编辑' : '自定义') : (isEditMode ? (editingKey === preset.key ? '✎ 编辑中' : (getStyleLabel(preset.key) !== preset.label ? getStyleLabel(preset.key) : preset.label)) : preset.label)}
                                             </div>
                                         ))}
                                     </div>
+
+                                    {isEditMode && !editingKey && (
+                                        <div className="edit-mode-hint">点击上方风格进行编辑修改</div>
+                                    )}
+
+                                    {isEditMode && editingKey && (
+                                        <div className="custom-preset-editor">
+                                            <div className="custom-preset-field">
+                                                <label>名称</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="风格名称"
+                                                    value={editingLabel}
+                                                    onChange={(e) => handleEditFieldChange('label', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="custom-preset-field">
+                                                <label>描述词</label>
+                                                <textarea
+                                                    rows={2}
+                                                    placeholder="英文提示词，如: steampunk, gears, brass"
+                                                    value={editingPrompt}
+                                                    onChange={(e) => handleEditFieldChange('prompt', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="edit-actions">
+                                                <button className="edit-btn apply-btn" onClick={handleApplyEdit}>应用</button>
+                                                <button className="edit-btn cancel-btn" onClick={handleCancelEdit}>取消</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {isEditMode && (
+                                        <div className="edit-actions save-bar">
+                                            <button className="edit-btn save-btn" onClick={handleSavePresets} disabled={!hasEdits}>保存修改</button>
+                                            <button className="edit-btn cancel-btn" onClick={handleCancelEdits} disabled={!hasEdits}>撤销所有</button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -217,6 +246,7 @@ const AppContent = () => {
                                             onChange={(e) => setTextureQuality(parseFloat(e.target.value))}
                                         />
                                     </div>
+                                    <div className="param-divider"></div>
                                 </div>
                             </div>
 
@@ -285,6 +315,10 @@ const AppContent = () => {
                                                     >
                                                         <img src={img} alt={`变体 ${i + 1}`} />
                                                         <span className="variant-num">{i + 1}</span>
+                                                        <button
+                                                            className="variant-thumb-del"
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteVariant(i); }}
+                                                        >✕</button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -364,6 +398,10 @@ const AppContent = () => {
                                                             </svg>
                                                         </div>
                                                         <span className="variant-num">{i + 1}</span>
+                                                        <button
+                                                            className="variant-thumb-del"
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteModel(i); }}
+                                                        >✕</button>
                                                     </div>
                                                 ))}
                                             </div>

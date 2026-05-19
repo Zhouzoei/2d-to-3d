@@ -18,6 +18,16 @@ const STYLE_PRESETS = [
         key: '写实',
         label: '写实',
         prompt: 'realistic character, detailed texture, natural lighting, PBR, photorealistic'
+    },
+    {
+        key: '简约',
+        label: '简约',
+        prompt: 'minimalist character, simple lines, clean design, flat colors, modern style'
+    },
+    {
+        key: '自定义',
+        label: '自定义',
+        prompt: ''
     }
 ];
 

@@ -1,5 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
+function loadRecentColors() {
+    try {
+        const stored = localStorage.getItem('recentColors');
+        if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return [];
+}
+
+function saveRecentColors(colors) {
+    localStorage.setItem('recentColors', JSON.stringify(colors));
+}
+
 const SketchCanvasNative = ({ onSketchChange }) => {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
@@ -10,6 +22,14 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [activeTool, setActiveTool] = useState('brush');
     const [canvasSize, setCanvasSize] = useState({ width: 500, height: 500 });
+    const [brushSize, setBrushSize] = useState(3);
+    const [brushColor, setBrushColor] = useState('#2C5F6B');
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [tempColor, setTempColor] = useState('#2C5F6B');
+    const [recentColors, setRecentColors] = useState(() => loadRecentColors());
+
+    const brushSizeRef = useRef(3);
+    const brushColorRef = useRef('#2C5F6B');
 
     const historyRef = useRef([]);
     const historyIndexRef = useRef(-1);
@@ -19,11 +39,14 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         historyIndexRef.current = historyIndex;
     }, [history, historyIndex]);
 
+    useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
+    useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
+
     const resizeCanvas = useCallback(() => {
         const container = containerRef.current;
         if (!container) return;
         const containerWidth = container.clientWidth;
-        const size = Math.min(containerWidth, 1024); // 限制最大尺寸
+        const size = Math.min(containerWidth, 1024);
         if (size !== canvasSize.width) {
             setCanvasSize({ width: size, height: size });
         }
@@ -80,12 +103,12 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     const applyTool = (ctx, tool) => {
         if (tool === 'brush') {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = '#2C5F6B';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = brushColorRef.current;
+            ctx.lineWidth = brushSizeRef.current;
         } else if (tool === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
             ctx.strokeStyle = 'rgba(0,0,0,1)';
-            ctx.lineWidth = 20;
+            ctx.lineWidth = brushSizeRef.current * 4;
         }
     };
 
@@ -101,6 +124,8 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         isDrawingRef.current = true;
         toolRef.current = activeTool;
         applyTool(ctx, activeTool);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(x, y);
@@ -168,6 +193,54 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         applyTool(ctx, tool);
     };
 
+    const handleBrushSizeChange = (e) => {
+        const val = parseInt(e.target.value);
+        setBrushSize(val);
+    };
+
+    const handleColorSelect = (color) => {
+        setBrushColor(color);
+        if (activeTool === 'brush') {
+            const ctx = ctxRef.current;
+            if (ctx) {
+                ctx.strokeStyle = color;
+            }
+        }
+        setRecentColors(prev => {
+            const filtered = prev.filter(c => c !== color);
+            const updated = [color, ...filtered].slice(0, 8);
+            saveRecentColors(updated);
+            return updated;
+        });
+    };
+
+    const openColorPicker = () => {
+        setTempColor(brushColor);
+        setShowColorPicker(true);
+    };
+
+    const handleTempColorChange = (e) => {
+        const color = e.target.value;
+        setTempColor(color);
+        setBrushColor(color);
+        if (activeTool === 'brush') {
+            const ctx = ctxRef.current;
+            if (ctx) {
+                ctx.strokeStyle = color;
+            }
+        }
+    };
+
+    const cancelColor = () => {
+        setShowColorPicker(false);
+        setRecentColors(prev => {
+            const filtered = prev.filter(c => c !== tempColor);
+            const updated = [tempColor, ...filtered].slice(0, 8);
+            saveRecentColors(updated);
+            return updated;
+        });
+    };
+
     const uploadImage = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -217,7 +290,7 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         const ctx = canvas.getContext('2d');
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = brushSizeRef.current;
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -244,46 +317,21 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     }, [canvasSize, onSketchChange]);
 
     return (
-        <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>
             <canvas
                 ref={canvasRef}
                 width={canvasSize.width}
                 height={canvasSize.height}
-                onPointerDown={(e) => {
-                    e.preventDefault();
-                    startDrawing(e);
-                }}
-                onPointerMove={(e) => {
-                    e.preventDefault();
-                    draw(e);
-                }}
-                onPointerUp={(e) => {
-                    e.preventDefault();
-                    endDrawing(e);
-                }}
-                onPointerCancel={(e) => {
-                    e.preventDefault();
-                    endDrawing(e);
-                }}
-                onPointerLeave={(e) => {
-                    if (isDrawingRef.current) {
-                        e.preventDefault();
-                        endDrawing(e);
-                    }
-                }}
-                onLostPointerCapture={(e) => {
-                    if (isDrawingRef.current) {
-                        endDrawing(e);
-                    }
-                }}
+                onPointerDown={(e) => { e.preventDefault(); startDrawing(e); }}
+                onPointerMove={(e) => { e.preventDefault(); draw(e); }}
+                onPointerUp={(e) => { e.preventDefault(); endDrawing(e); }}
+                onPointerCancel={(e) => { e.preventDefault(); endDrawing(e); }}
+                onPointerLeave={(e) => { if (isDrawingRef.current) { e.preventDefault(); endDrawing(e); } }}
+                onLostPointerCapture={(e) => { if (isDrawingRef.current) endDrawing(e); }}
                 style={{
-                    width: '100%',
-                    height: 'auto',
-                    aspectRatio: '1 / 1',
-                    backgroundColor: 'white',
-                    borderRadius: '16px',
-                    cursor: 'crosshair',
-                    touchAction: 'none',
+                    width: '100%', height: 'auto', aspectRatio: '1 / 1',
+                    backgroundColor: 'white', borderRadius: '16px',
+                    cursor: 'crosshair', touchAction: 'none',
                     border: '1px solid rgba(172, 229, 238, 0.6)'
                 }}
             />
@@ -294,20 +342,60 @@ const SketchCanvasNative = ({ onSketchChange }) => {
                     <button className="tool-btn" onClick={clearCanvas}>清空</button>
                 </div>
                 <div className="tool-group">
-                    <button className="tool-btn" onClick={() => document.getElementById('upload-sketch-input').click()}>
-                        上传图片
-                    </button>
-                    <input 
-                        id="upload-sketch-input"
-                        type="file" 
-                        accept="image/png, image/jpeg, image/jpg" 
-                        onChange={uploadImage} 
-                        style={{ display: 'none' }} 
-                    />
+                    <div className="brush-size-control" title={`笔刷大小: ${brushSize}`}>
+                        <span className="brush-size-icon" style={{ width: Math.max(6, brushSize * 0.5 + 4), height: Math.max(6, brushSize * 0.5 + 4) }}></span>
+                        <input
+                            type="range"
+                            min="1"
+                            max="20"
+                            value={brushSize}
+                            onChange={handleBrushSizeChange}
+                            className="brush-slider"
+                        />
+                    </div>
+                    <div className="color-picker-trigger" onClick={openColorPicker}>
+                        <span className="color-swatch" style={{ backgroundColor: brushColor }}></span>
+                    </div>
+                </div>
+                <div className="tool-group">
+                    <button className="tool-btn" onClick={() => document.getElementById('upload-sketch-input').click()}>上传</button>
+                    <input id="upload-sketch-input" type="file" accept="image/png, image/jpeg, image/jpg" onChange={uploadImage} style={{ display: 'none' }} />
                     <button className="tool-btn" onClick={downloadSketch}>下载</button>
                     <button className="tool-btn" onClick={undo}>撤销</button>
                 </div>
             </div>
+            {showColorPicker && (
+                <>
+                    <div className="color-picker-overlay" onClick={cancelColor} />
+                    <div className="color-picker-popup">
+                        <div className="color-picker-native-wrap">
+                            <div className="color-picker-current-swatch" style={{ backgroundColor: tempColor }} />
+                            <input
+                                type="color"
+                                className="color-picker-native"
+                                value={tempColor}
+                                onChange={handleTempColorChange}
+                            />
+                            <div className="color-picker-current-label">{tempColor}</div>
+                        </div>
+                        {recentColors.length > 0 && (
+                            <div className="color-picker-recents">
+                                <span className="color-picker-recents-label">最近</span>
+                                <div className="color-picker-recents-list">
+                                    {recentColors.map(color => (
+                                        <span
+                                            key={color}
+                                            className="color-picker-recent-dot"
+                                            style={{ backgroundColor: color }}
+                                            onClick={() => handleColorSelect(color)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
