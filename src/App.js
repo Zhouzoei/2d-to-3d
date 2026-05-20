@@ -35,8 +35,39 @@ const AppContent = () => {
         handleEditFieldChange, handleApplyEdit, handleCancelEdit,
         handleSavePresets, handleCancelEdits,
         handleLoadRecord,
+        handleCancelGeneration,
+        setShowWelcome,
+        setShowOnboarding,
     } = useAppState();
     const { currentUser } = useUser();
+
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            if (e.key === 'h' || e.key === 'H') {
+                e.preventDefault();
+                if (!showHistoryModal) setShowHistoryModal(true);
+                return;
+            }
+
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                if (!loading && sketchData) handleGenerate();
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                if (showHistoryModal) setShowHistoryModal(false);
+                else if (showCropModal) setShowCropModal(false);
+                else if (showAuthModal) setShowAuthModal(false);
+                return;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showHistoryModal, showCropModal, showAuthModal, loading, sketchData, handleGenerate, setShowHistoryModal, setShowCropModal, setShowAuthModal]);
 
     const titleChars = '绘灵造物'.split('');
     const badgeChars = '✦ 绘影 · Spirit Brush ✦'.split('');
@@ -46,8 +77,8 @@ const AppContent = () => {
         <>
             {showWelcome && <WelcomeScreen onEnter={handleEnterApp} />}
 
-            <div className="app" style={{ display: showWelcome ? 'none' : 'block' }}>
-                {showOnboarding && (
+            <div className="app">
+                {!showWelcome && showOnboarding && (
                     <OnboardingTooltip
                         onComplete={handleOnboardingComplete}
                         onSkip={handleOnboardingSkip}
@@ -59,7 +90,7 @@ const AppContent = () => {
                     sketchData={tempSketchData}
                     onConfirm={handleCropConfirm}
                 />
-                <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+                <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} setShowWelcome={setShowWelcome} setShowOnboarding={setShowOnboarding} />
                 <HistoryModal
                     isOpen={showHistoryModal}
                     onClose={() => setShowHistoryModal(false)}
@@ -125,6 +156,7 @@ const AppContent = () => {
                                     <div className="prompt-wrapper">
                                         <TextInput value={prompt} onChange={setPrompt} selectedStyle={selectedStyle} getStyleLabel={getStyleLabel} />
                                     </div>
+                                    <div className="generate-row">
                                     <button
                                         className="generate-button"
                                         onClick={handleGenerate}
@@ -132,6 +164,15 @@ const AppContent = () => {
                                     >
                                         {loading ? '生成中...' : '开始生成 →'}
                                     </button>
+                                    {loading && (
+                                        <button
+                                            className="cancel-button"
+                                            onClick={handleCancelGeneration}
+                                        >
+                                            取消
+                                        </button>
+                                    )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

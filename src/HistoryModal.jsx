@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser } from './UserContext';
 import './HistoryModal.css';
 
@@ -8,6 +8,7 @@ function migrateOldRecord(record) {
         batchId: record.id || Date.now(),
         createdAt: record.createdAt,
         isFavorite: record.isFavorite || false,
+        customName: record.customName || '',
         variants: [{
             fullImage: record.fullImage,
             thumbnail: record.thumbnail,
@@ -25,11 +26,43 @@ function migrateOldRecord(record) {
     };
 }
 
+function parseRecordTime(record) {
+    const d = new Date(record.createdAt);
+    return isNaN(d.getTime()) ? new Date(record.batchId) : d;
+}
+
+function getTimeCategory(record) {
+    const date = parseRecordTime(record);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() - todayStart.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (date >= todayStart) return 'today';
+    if (date >= weekStart) return 'week';
+    if (date >= monthStart) return 'month';
+    return 'earlier';
+}
+
+const TIME_FILTERS = [
+    { key: 'all', label: '全部' },
+    { key: 'today', label: '今天' },
+    { key: 'week', label: '本周' },
+    { key: 'month', label: '本月' },
+    { key: 'earlier', label: '更早' },
+];
+
 const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const [history, setHistory] = useState([]);
     const [filter, setFilter] = useState('all');
+    const [timeFilter, setTimeFilter] = useState('all');
     const [searchText, setSearchText] = useState('');
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [previewRecord, setPreviewRecord] = useState(null);
+    const [editingRecordId, setEditingRecordId] = useState(null);
+    const [editName, setEditName] = useState('');
+    const editInputRef = useRef(null);
+    const clickTimerRef = useRef(null);
     const { incrementFavCount } = useUser();
 
     useEffect(() => {
@@ -44,17 +77,30 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                 setHistory([]);
             }
             setSearchText('');
+            setPreviewRecord(null);
+            setEditingRecordId(null);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (editingRecordId && editInputRef.current) {
+            editInputRef.current.focus();
+            editInputRef.current.select();
+        }
+    }, [editingRecordId]);
 
     const displayHistory = useMemo(() => {
         let result = history;
         if (filter === 'favorite') {
             result = result.filter(r => r.isFavorite);
         }
+        if (timeFilter !== 'all') {
+            result = result.filter(r => getTimeCategory(r) === timeFilter);
+        }
         if (searchText.trim()) {
             const kw = searchText.trim().toLowerCase();
             result = result.filter(r =>
+                (r.customName && r.customName.toLowerCase().includes(kw)) ||
                 r.variants.some(v =>
                     (v.prompt && v.prompt.toLowerCase().includes(kw)) ||
                     (v.style && v.style.toLowerCase().includes(kw))
@@ -62,7 +108,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
             );
         }
         return result;
-    }, [history, filter, searchText]);
+    }, [history, filter, timeFilter, searchText]);
 
     const persistHistory = (newHistory) => {
         localStorage.setItem('generateHistory', JSON.stringify(newHistory));
@@ -73,6 +119,9 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         const newHistory = history.filter(record => record.batchId !== batchId);
         setHistory(newHistory);
         persistHistory(newHistory);
+        if (previewRecord && previewRecord.batchId === batchId) {
+            setPreviewRecord(null);
+        }
     };
 
     const handleFavorite = (batchId, e) => {
@@ -87,17 +136,78 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         });
         setHistory(newHistory);
         persistHistory(newHistory);
+        if (previewRecord && previewRecord.batchId === batchId) {
+            setPreviewRecord(prev => ({ ...prev, isFavorite: !prev.isFavorite }));
+        }
     };
 
-    const handleLoadRecord = (record) => {
-        onLoadRecord(record);
-        onClose();
+    const handleCardClick = (record) => {
+        if (clickTimerRef.current) {
+            clearTimeout(clickTimerRef.current);
+            clickTimerRef.current = null;
+            return;
+        }
+        clickTimerRef.current = setTimeout(() => {
+            clickTimerRef.current = null;
+            setPreviewRecord(record);
+        }, 250);
+    };
+
+    const handleLoadFromPreview = () => {
+        if (previewRecord) {
+            onLoadRecord(previewRecord);
+            onClose();
+        }
     };
 
     const confirmClearAll = () => {
         localStorage.removeItem('generateHistory');
         setHistory([]);
         setShowClearConfirm(false);
+        setPreviewRecord(null);
+    };
+
+    const handleDoubleClickName = (record, e) => {
+        e.stopPropagation();
+        if (clickTimerRef.current) {
+            clearTimeout(clickTimerRef.current);
+            clickTimerRef.current = null;
+        }
+        setEditingRecordId(record.batchId);
+        setEditName(record.customName || record.variants[0]?.prompt || '');
+    };
+
+    const handleRenameSubmit = () => {
+        if (editingRecordId === null) return;
+        const newHistory = history.map(record => {
+            if (record.batchId === editingRecordId) {
+                return { ...record, customName: editName.trim() || '' };
+            }
+            return record;
+        });
+        setHistory(newHistory);
+        persistHistory(newHistory);
+        if (previewRecord && previewRecord.batchId === editingRecordId) {
+            setPreviewRecord(prev => ({ ...prev, customName: editName.trim() || '' }));
+        }
+        setEditingRecordId(null);
+        setEditName('');
+    };
+
+    const handleRenameKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleRenameSubmit();
+        } else if (e.key === 'Escape') {
+            setEditingRecordId(null);
+            setEditName('');
+        }
+    };
+
+    const displayName = (record) => {
+        if (record.customName) return record.customName;
+        const first = record.variants[0];
+        return first?.prompt || first?.style || '未命名';
     };
 
     if (!isOpen) return null;
@@ -105,38 +215,48 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     return (
         <div className="history-modal-overlay" onClick={onClose}>
             <div className="history-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="history-modal-header">
-                    <h2>生成记录</h2>
-                    <button className="history-modal-close" onClick={onClose}>✕</button>
-                </div>
+                <div className="history-modal-content">
+                    <div className="history-modal-header">
+                        <h2>生成记录</h2>
+                        <button className="history-modal-close" onClick={onClose}>✕</button>
+                    </div>
 
-                <div className="history-toolbar">
-                    <div className="history-toolbar-left">
-                        <div className="history-tabs">
-                            <button
-                                className={`history-tab ${filter === 'all' ? 'active' : ''}`}
-                                onClick={() => setFilter('all')}
-                            >全部 ({history.length})</button>
-                            <button
-                                className={`history-tab ${filter === 'favorite' ? 'active' : ''}`}
-                                onClick={() => setFilter('favorite')}
-                            >收藏 ({history.filter(r => r.isFavorite).length})</button>
+                    <div className="history-toolbar">
+                        <div className="history-toolbar-left">
+                            <div className="history-tabs">
+                                <button
+                                    className={`history-tab ${filter === 'all' ? 'active' : ''}`}
+                                    onClick={() => setFilter('all')}
+                                >全部 ({history.length})</button>
+                                <button
+                                    className={`history-tab ${filter === 'favorite' ? 'active' : ''}`}
+                                    onClick={() => setFilter('favorite')}
+                                >收藏 ({history.filter(r => r.isFavorite).length})</button>
+                            </div>
+                            <select
+                                className="history-time-select"
+                                value={timeFilter}
+                                onChange={(e) => setTimeFilter(e.target.value)}
+                            >
+                                {TIME_FILTERS.map(tf => (
+                                    <option key={tf.key} value={tf.key}>{tf.label}</option>
+                                ))}
+                            </select>
                         </div>
+                        <div className="history-search">
+                            <input
+                                type="text"
+                                placeholder="搜索名称、prompt 或风格..."
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                            />
+                        </div>
+                        {history.length > 0 && (
+                            <button className="history-clear-all" onClick={() => setShowClearConfirm(true)}>清空全部</button>
+                        )}
                     </div>
-                    <div className="history-search">
-                        <input
-                            type="text"
-                            placeholder="搜索 prompt 或风格..."
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                        />
-                    </div>
-                    {history.length > 0 && (
-                        <button className="history-clear-all" onClick={() => setShowClearConfirm(true)}>清空全部</button>
-                    )}
-                </div>
 
-                <div className="history-gallery">
+                    <div className="history-gallery">
                     {displayHistory.length === 0 ? (
                         <div className="history-empty">
                             <span>📭</span>
@@ -148,11 +268,12 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                             const firstVariant = record.variants[0];
                             const variantCount = record.variants.length;
                             const modelCount = record.models ? record.models.length : 0;
+                            const isEditing = editingRecordId === record.batchId;
                             return (
                                 <div
                                     key={record.batchId}
                                     className="history-card"
-                                    onClick={() => handleLoadRecord(record)}
+                                    onClick={() => handleCardClick(record)}
                                 >
                                     <div className="history-card-thumb">
                                         <img src={firstVariant.thumbnail || firstVariant.fullImage} alt={firstVariant.style} />
@@ -168,19 +289,111 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                         </div>
                                     </div>
                                     <div className="history-card-info">
-                                        <span className="history-card-style">{firstVariant.prompt || firstVariant.style || '未命名'}</span>
-                                        <div className="history-card-meta">
-                                            <span className="history-card-time">{record.createdAt}</span>
-                                            <span className="history-card-badge-combo">
-                                                2D × {variantCount}{modelCount > 0 ? ` · 3D × ${modelCount}` : ''}
-                                            </span>
-                                        </div>
+                                        {isEditing ? (
+                                            <input
+                                                ref={editInputRef}
+                                                className="history-card-rename-input"
+                                                value={editName}
+                                                onChange={(e) => setEditName(e.target.value)}
+                                                onBlur={handleRenameSubmit}
+                                                onKeyDown={handleRenameKeyDown}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        ) : (
+                                            <span
+                                                className="history-card-style"
+                                                onDoubleClick={(e) => handleDoubleClickName(record, e)}
+                                                title="双击重命名"
+                                            >{displayName(record)}</span>
+                                        )}
+                                        <span className="history-card-time">{record.createdAt}</span>
+                                        <span className="history-card-badge-combo">
+                                            2D × {variantCount}{modelCount > 0 ? ` · 3D × ${modelCount}` : ''}
+                                        </span>
                                     </div>
                                 </div>
                             );
                         })
                     )}
+                    </div>
+
                 </div>
+
+                {previewRecord && (
+                    <div className="preview-overlay" onClick={() => setPreviewRecord(null)}>
+                        <div className="preview-panel" onClick={(e) => e.stopPropagation()}>
+                            <div className="preview-panel-header">
+                                <h3 className="preview-panel-title">
+                                    {previewRecord.customName || previewRecord.variants[0]?.prompt || previewRecord.variants[0]?.style || '记录详情'}
+                                </h3>
+                                <button className="preview-panel-close" onClick={() => setPreviewRecord(null)}>✕</button>
+                            </div>
+                            <div className="preview-panel-body">
+                                <div className="preview-main-image">
+                                    <img src={previewRecord.variants[0]?.fullImage} alt="main" />
+                                </div>
+                                <div className="preview-sidebar">
+                                    <div className="preview-info">
+                                        <div className="preview-info-row">
+                                            <span className="preview-info-label">创建时间</span>
+                                            <span className="preview-info-value">{previewRecord.createdAt}</span>
+                                        </div>
+                                        <div className="preview-info-row">
+                                            <span className="preview-info-label">风格</span>
+                                            <span className="preview-info-value">{previewRecord.variants[0]?.style || '默认'}</span>
+                                        </div>
+                                        <div className="preview-info-row">
+                                            <span className="preview-info-label">生成变体</span>
+                                            <span className="preview-info-value">{previewRecord.variants.length} 张</span>
+                                        </div>
+                                        {previewRecord.models && previewRecord.models.length > 0 && (
+                                            <div className="preview-info-row">
+                                                <span className="preview-info-label">3D 模型</span>
+                                                <span className="preview-info-value">{previewRecord.models.length} 个</span>
+                                            </div>
+                                        )}
+                                        <div className="preview-info-row">
+                                            <span className="preview-info-label">收藏</span>
+                                            <span className="preview-info-value">{previewRecord.isFavorite ? '⭐ 已收藏' : '—'}</span>
+                                        </div>
+                                    </div>
+                                    {previewRecord.variants.length > 1 && (
+                                        <div className="preview-variants">
+                                            <div className="preview-variants-label">所有 2D 变体</div>
+                                            <div className="preview-variants-strip">
+                                                {previewRecord.variants.map((v, i) => (
+                                                    <div key={i} className="preview-variant-thumb">
+                                                        <img src={v.thumbnail || v.fullImage} alt={`变体 ${i + 1}`} />
+                                                        <span>{i + 1}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {previewRecord.models && previewRecord.models.length > 0 && (
+                                        <div className="preview-variants">
+                                            <div className="preview-variants-label">3D 模型</div>
+                                            <div className="preview-variants-strip">
+                                                {previewRecord.models.map((m, i) => (
+                                                    <div key={i} className="preview-variant-thumb preview-variant-thumb-3d">
+                                                        <img src={m.modelThumbnail || m.modelUrl} alt={`3D ${i + 1}`} />
+                                                        <span>3D</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="preview-panel-footer">
+                                <button className="preview-btn preview-btn-cancel" onClick={() => setPreviewRecord(null)}>关闭</button>
+                                <button className="preview-btn preview-btn-load" onClick={handleLoadFromPreview}>
+                                    加载到画布
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {showClearConfirm && (
                     <div className="clear-overlay" onClick={() => setShowClearConfirm(false)}>

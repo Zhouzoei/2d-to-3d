@@ -1,189 +1,241 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './OnboardingTooltip.css';
 
+const TIPS = [
+    {
+        title: '灵动画布',
+        content: '在这里绘制你的角色草图，支持画笔、橡皮、撤销、上传图片等多种工具。\n下方可以输入文字描述，详细描述角色的特征。',
+        targetSelector: '.sketch-col',
+        placement: 'right',
+        highlight: true
+    },
+    {
+        title: '风格预设',
+        content: '快速选择奇幻、科幻、可爱、写实等艺术风格。\n点击即可切换，系统会自动填充对应的提示词。',
+        targetSelector: '.params-col .card:first-child',
+        placement: 'left',
+        highlight: true
+    },
+    {
+        title: '高级参数',
+        content: '调整创意度、几何细节、纹理质量。\n数值越高效果越丰富，可以精细控制生成结果。',
+        targetSelector: '.params-col .card:nth-child(2)',
+        placement: 'left',
+        highlight: true
+    },
+    {
+        title: '生成状态',
+        content: '实时查看草图处理、2D角色生成、3D模型重建的进度和状态，方便了解当前生成阶段。',
+        targetSelector: '.params-col .card:last-child',
+        placement: 'left',
+        highlight: true
+    },
+    {
+        title: '灵韵画卷',
+        content: 'AI 生成的 2D 角色图像会显示在这里。\n支持鼠标拖拽移动和按钮缩放，可下载保存。',
+        targetSelector: '.gallery-left .preview-card-full',
+        placement: 'right',
+        highlight: true
+    },
+    {
+        title: '造物之形',
+        content: '3D 模型预览区域，支持鼠标拖拽旋转视角、滚轮缩放，可下载 3D 模型文件。',
+        targetSelector: '.gallery-right .preview-card-full',
+        placement: 'left',
+        highlight: true
+    },
+    {
+        title: '生成记录',
+        content: '点击顶部「生成记录」按钮或按 H 键，查看所有历史作品。\n支持按时间筛选、搜索、收藏和重命名。\n点击卡片可预览详情，确认后再加载到画布。',
+        targetSelector: '.history-btn',
+        placement: 'bottom',
+        highlight: true
+    },
+    {
+        title: '个人账户',
+        content: '点击右上角头像登录/注册账户。\n在账户面板可查看生成次数、连续创作天数、常用风格统计和最近动态。\n支持编辑昵称、上传头像、修改密码。',
+        targetSelector: '.user-btn',
+        placement: 'bottom',
+        highlight: true
+    },
+];
+
+function findTarget(tip) {
+    if (!tip) return null;
+    let target = null;
+    try {
+        if (tip.targetSelector) {
+            target = document.querySelector(tip.targetSelector);
+        }
+        if (!target) {
+            const fallbackTitles = ['风格预设', '高级参数', '生成状态'];
+            for (const title of fallbackTitles) {
+                if (tip.title === title) {
+                    const cards = document.querySelectorAll('.card');
+                    for (const card of cards) {
+                        const header = card.querySelector('.card-header');
+                        if (header && header.textContent.includes(title)) {
+                            target = card;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if (!target && tip.title === '生成记录') {
+            const btns = document.querySelectorAll('.header-btn');
+            for (const btn of btns) {
+                if (btn.textContent.includes('生成记录')) {
+                    target = btn;
+                    break;
+                }
+            }
+        }
+        if (!target && tip.title === '个人账户') {
+            const btns = document.querySelectorAll('.header-btn');
+            for (const btn of btns) {
+                if (btn.classList.contains('user-btn')) {
+                    target = btn;
+                    break;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('查找目标元素失败:', e);
+    }
+    return target;
+}
+
+function calcPositions(tip, tooltipW, tooltipH) {
+    const target = findTarget(tip);
+    if (!target) return null;
+
+    const rect = target.getBoundingClientRect();
+    const gap = 14;
+
+    const highlight = {
+        top: rect.top - 8,
+        left: rect.left - 8,
+        width: rect.width + 16,
+        height: rect.height + 16
+    };
+
+    let top, left;
+
+    switch (tip.placement) {
+        case 'right':
+            top = rect.top + (rect.height / 2) - (tooltipH / 2);
+            left = rect.right + gap;
+            break;
+        case 'left':
+            top = rect.top + (rect.height / 2) - (tooltipH / 2);
+            left = rect.left - tooltipW - gap;
+            break;
+        case 'bottom':
+            top = rect.bottom + gap;
+            left = rect.left + (rect.width / 2) - (tooltipW / 2);
+            break;
+        default:
+            top = rect.top;
+            left = rect.right + gap;
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const pad = 10;
+
+    if (left < pad) left = pad;
+    if (left + tooltipW > vw - pad) left = vw - tooltipW - pad;
+    if (top < pad) top = pad;
+    if (top + tooltipH > vh - pad) top = vh - tooltipH - pad;
+
+    return { tooltip: { top, left }, highlight };
+}
+
 const OnboardingTooltip = ({ onComplete, onSkip }) => {
     const [step, setStep] = useState(0);
     const [isVisible, setIsVisible] = useState(true);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [highlightRect, setHighlightRect] = useState(null);
+    const [tooltipSize, setTooltipSize] = useState({ width: 280, height: 200 });
+    const [positionTick, setPositionTick] = useState(0);
     const tooltipRef = useRef(null);
+    const stepRef = useRef(0);
+    const tickRef = useRef(0);
 
-    // 定义每个提示对应的目标元素选择器
-    const tips = [
-        {
-            title: '灵动画布',
-            content: '在这里绘制你的角色草图，支持画笔、橡皮、撤销、上传图片等多种工具。\n下方可以输入文字描述，详细描述角色的特征。',
-            targetSelector: '.sketch-col',
-            placement: 'right',
-            highlight: true
-        },
-        {
-            title: '风格预设',
-            content: '快速选择奇幻、科幻、可爱、写实等艺术风格。\n点击即可切换，系统会自动填充对应的提示词。',
-            targetSelector: '.params-col .card:first-child',
-            placement: 'left',
-            highlight: true
-        },
-        {
-            title: '高级参数',
-            content: '调整创意度、几何细节、纹理质量。\n数值越高效果越丰富，可以精细控制生成结果。',
-            targetSelector: '.params-col .card:nth-child(2)',
-            placement: 'left',
-            highlight: true
-        },
-        {
-            title: '生成状态',
-            content: '实时查看草图处理、2D角色生成、3D模型重建的进度和状态，方便了解当前生成阶段。',
-            targetSelector: '.params-col .card:last-child',
-            placement: 'left',
-            highlight: true
-        },
-        {
-            title: '灵韵画卷',
-            content: 'AI 生成的 2D 角色图像会显示在这里.\n支持鼠标拖拽移动和按钮缩放，可以下载保存。',
-            targetSelector: '.gallery-left .preview-card-full',
-            placement: 'right',
-            highlight: true
-        },
-        {
-            title: '造物之形',
-            content: '3D 模型预览区域，支持鼠标拖拽旋转视角、滚轮缩放，可以下载 OBJ 格式的 3D 模型文件。',
-            targetSelector: '.gallery-right .preview-card-full',
-            placement: 'left',
-            highlight: true
+    const refresh = useCallback(() => {
+        const tip = TIPS[stepRef.current];
+        const tw = tooltipRef.current ? tooltipRef.current.offsetWidth : tooltipSize.width;
+        const th = tooltipRef.current ? tooltipRef.current.offsetHeight : tooltipSize.height;
+        const result = calcPositions(tip, tw, th);
+        if (!result) return;
+        setTooltipPosition(result.tooltip);
+        setHighlightRect(result.highlight);
+    }, [tooltipSize]);
+
+    const doStep = useCallback((nextStep) => {
+        stepRef.current = nextStep;
+        setStep(nextStep);
+        const nextTip = TIPS[nextStep];
+        if (!nextTip) return;
+
+        const target = findTarget(nextTip);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    ];
 
-    const currentTip = tips[step];
-
-    // 获取目标元素
-    const getTargetElement = useCallback(() => {
-        let target = null;
-        try {
-            if (currentTip.targetSelector) {
-                target = document.querySelector(currentTip.targetSelector);
+        setTimeout(() => {
+            if (tooltipRef.current) {
+                setTooltipSize({
+                    width: tooltipRef.current.offsetWidth,
+                    height: tooltipRef.current.offsetHeight
+                });
             }
-            // 如果没找到，根据文本内容查找
-            if (!target && currentTip.title === '风格预设') {
-                const cards = document.querySelectorAll('.card');
-                for (const card of cards) {
-                    const header = card.querySelector('.card-header');
-                    if (header && header.textContent.includes('风格预设')) {
-                        target = card;
-                        break;
-                    }
-                }
-            }
-            if (!target && currentTip.title === '高级参数') {
-                const cards = document.querySelectorAll('.card');
-                for (const card of cards) {
-                    const header = card.querySelector('.card-header');
-                    if (header && header.textContent.includes('高级参数')) {
-                        target = card;
-                        break;
-                    }
-                }
-            }
-            if (!target && currentTip.title === '生成状态') {
-                const cards = document.querySelectorAll('.card');
-                for (const card of cards) {
-                    const header = card.querySelector('.card-header');
-                    if (header && header.textContent.includes('生成状态')) {
-                        target = card;
-                        break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('查找目标元素失败:', e);
-        }
-        return target;
-    }, [currentTip.targetSelector, currentTip.title]);
-
-    // 计算提示框位置和高亮区域
-    const updatePositions = useCallback(() => {
-        const targetElement = getTargetElement();
-        if (!targetElement) {
-            console.warn('找不到目标元素:', currentTip.title);
-            return;
-        }
-
-        const targetRect = targetElement.getBoundingClientRect();
-        const tooltipWidth = 280;
-        const tooltipHeight = 200;
-        const gap = 15;
-
-        // 更新高亮区域
-        setHighlightRect({
-            top: targetRect.top - 8,
-            left: targetRect.left - 8,
-            width: targetRect.width + 16,
-            height: targetRect.height + 16
-        });
-
-        let top, left;
-
-        switch (currentTip.placement) {
-            case 'right':
-                top = targetRect.top + (targetRect.height / 2) - (tooltipHeight / 2);
-                left = targetRect.right + gap;
-                break;
-            case 'left':
-                top = targetRect.top + (targetRect.height / 2) - (tooltipHeight / 2);
-                left = targetRect.left - tooltipWidth - gap;
-                break;
-            default:
-                top = targetRect.top;
-                left = targetRect.right + gap;
-        }
-
-        // 边界检测
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        if (left < 10) left = 10;
-        if (left + tooltipWidth > viewportWidth - 10) {
-            left = viewportWidth - tooltipWidth - 10;
-        }
-        if (top < 10) top = 10;
-        if (top + tooltipHeight > viewportHeight - 10) {
-            top = viewportHeight - tooltipHeight - 10;
-        }
-
-        setTooltipPosition({ top, left });
-    }, [getTargetElement, currentTip.title, currentTip.placement]);
-
-    // 监听滚动和窗口大小变化
-    useEffect(() => {
-        if (!isVisible) return;
-
-        // 延迟一点确保 DOM 渲染完成
-        const timer = setTimeout(() => {
-            updatePositions();
+            tickRef.current += 1;
+            setPositionTick(tickRef.current);
         }, 100);
 
-        // 监听滚动事件
-        window.addEventListener('scroll', updatePositions, true);
-        window.addEventListener('resize', updatePositions);
+        setTimeout(() => {
+            tickRef.current += 1;
+            setPositionTick(tickRef.current);
+        }, 500);
 
+        setTimeout(() => {
+            tickRef.current += 1;
+            setPositionTick(tickRef.current);
+        }, 900);
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
+        stepRef.current = step;
+        const timer = setTimeout(() => {
+            if (tooltipRef.current) {
+                setTooltipSize({
+                    width: tooltipRef.current.offsetWidth,
+                    height: tooltipRef.current.offsetHeight
+                });
+            }
+            doStep(step);
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [isVisible, step, doStep]);
+
+    useEffect(() => {
+        if (!isVisible) return;
+        refresh();
+        window.addEventListener('scroll', refresh, true);
+        window.addEventListener('resize', refresh);
         return () => {
-            clearTimeout(timer);
-            window.removeEventListener('scroll', updatePositions, true);
-            window.removeEventListener('resize', updatePositions);
+            window.removeEventListener('scroll', refresh, true);
+            window.removeEventListener('resize', refresh);
         };
-    }, [isVisible, updatePositions]);
+    }, [isVisible, refresh, positionTick]);
 
     const handleNext = () => {
-        if (step + 1 < tips.length) {
-            setStep(step + 1);
-            // 延迟滚动，等待 DOM 更新
-            setTimeout(() => {
-                const target = getTargetElement();
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                updatePositions();
-            }, 100);
+        if (step + 1 < TIPS.length) {
+            doStep(step + 1);
         } else {
             setIsVisible(false);
             if (onComplete) onComplete();
@@ -197,31 +249,22 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
 
     if (!isVisible) return null;
 
+    const currentTip = TIPS[step];
+
     return (
         <div className="onboarding-overlay">
-            {/* 高亮遮罩 */}
             {highlightRect && currentTip.highlight && (
                 <>
                     <div className="highlight-mask" style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        zIndex: 3000,
-                        pointerEvents: 'none'
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.6)', zIndex: 3000, pointerEvents: 'none'
                     }} />
-                    <div 
+                    <div
                         className="highlight-area"
                         style={{
-                            position: 'fixed',
-                            top: highlightRect.top,
-                            left: highlightRect.left,
-                            width: highlightRect.width,
-                            height: highlightRect.height,
-                            zIndex: 3002,
-                            pointerEvents: 'none',
+                            position: 'fixed', top: highlightRect.top, left: highlightRect.left,
+                            width: highlightRect.width, height: highlightRect.height,
+                            zIndex: 3002, pointerEvents: 'none',
                             borderRadius: '12px',
                             boxShadow: '0 0 0 4px rgba(255, 255, 255, 0.5), 0 0 0 8px rgba(26, 74, 85, 0.3)',
                             transition: 'all 0.3s ease'
@@ -229,9 +272,8 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
                     />
                 </>
             )}
-            
-            {/* 提示气泡 */}
-            <div 
+
+            <div
                 ref={tooltipRef}
                 className="onboarding-tooltip"
                 style={{
@@ -242,7 +284,7 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
                 }}
             >
                 <div className="tooltip-header">
-                    <span className="tooltip-step">{step + 1}/{tips.length}</span>
+                    <span className="tooltip-step">{step + 1}/{TIPS.length}</span>
                     <button className="tooltip-skip" onClick={handleSkip}>跳过</button>
                 </div>
                 <h4>{currentTip.title}</h4>
@@ -255,7 +297,7 @@ const OnboardingTooltip = ({ onComplete, onSkip }) => {
                     ))}
                 </p>
                 <button className="tooltip-next" onClick={handleNext}>
-                    {step + 1 === tips.length ? '完成' : '下一步'}
+                    {step + 1 === TIPS.length ? '完成' : '下一步'}
                     <span className="tooltip-arrow">→</span>
                 </button>
                 <div className={`tooltip-arrow-pointer arrow-${currentTip.placement}`} />

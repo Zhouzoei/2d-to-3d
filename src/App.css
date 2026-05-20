@@ -717,6 +717,43 @@ body {
   cursor: not-allowed;
 }
 
+.generate-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.generate-row .generate-button {
+  flex: 1;
+  min-width: 0;
+}
+
+.cancel-button {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 20px;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1.5px solid rgba(231, 76, 60, 0.35);
+  border-radius: 44px;
+  color: #c0392b;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  animation: cancelFadeIn 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: rgba(231, 76, 60, 0.5);
+  transform: translateY(-1px);
+}
+
+@keyframes cancelFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* ============================================
    2D 变体浏览
    ============================================ */

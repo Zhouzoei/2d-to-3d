@@ -36,13 +36,15 @@ export default function useGeneration({
     const saveToHistoryRef = useRef(null);
     const continueGenerateRef = useRef(null);
     const batchIdRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const cancelRequestedRef = useRef(false);
 
     useEffect(() => { sketchDataRef.current = sketchData; }, [sketchData]);
     useEffect(() => {
         paramsRef.current = { prompt, selectedStyle, creativity, geometryDetail, textureQuality };
     }, [prompt, selectedStyle, creativity, geometryDetail, textureQuality]);
 
-    const callGenerateAPI = useCallback(async (finalSketchData) => {
+    const callGenerateAPI = useCallback(async (finalSketchData, signal) => {
         const { prompt: p, selectedStyle: s, creativity: c, geometryDetail: gd, textureQuality: tq } = paramsRef.current;
 
         let effectivePrompt = p;
@@ -66,7 +68,7 @@ export default function useGeneration({
         formData.append('geometry_detail', gd.toString());
         formData.append('texture_quality', tq.toString());
         const response = await fetch(`${API_URL}/generate`, {
-            method: 'POST', body: formData,
+            method: 'POST', body: formData, signal,
         });
         if (!response.ok) {
             const errorData = await response.json();
@@ -76,13 +78,17 @@ export default function useGeneration({
     }, [getStylePrompt]);
 
     continueGenerateRef.current = useCallback(async (finalSketchData) => {
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        cancelRequestedRef.current = false;
         setLoading(true);
         setError(null);
         setGenerationStatus({ sketch: 'done', character: 'active', model: 'pending' });
         setProgress(20);
         try {
             setProgress(40);
-            const data = await callGenerateAPI(finalSketchData);
+            const data = await callGenerateAPI(finalSketchData, controller.signal);
+            if (cancelRequestedRef.current) return;
             setProgress(70);
             if (data.image_base64) {
                 const imageUrl = `data:image/png;base64,${data.image_base64}`;
@@ -98,12 +104,14 @@ export default function useGeneration({
                 throw new Error('后端未返回图片数据');
             }
         } catch (err) {
+            if (err.name === 'AbortError' || cancelRequestedRef.current) return;
             console.error('生成失败:', err);
             setError(err.message);
             setGenerationStatus({ sketch: 'done', character: 'error', model: 'pending' });
             setProgress(0);
         } finally {
             setLoading(false);
+            abortControllerRef.current = null;
         }
     }, [callGenerateAPI, currentUser, incrementGenCount]);
 
@@ -123,13 +131,17 @@ export default function useGeneration({
     const handleRegenerate = useCallback(async () => {
         const currentSketchData = sketchDataRef.current;
         if (!currentSketchData) return;
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        cancelRequestedRef.current = false;
         setLoading(true);
         setError(null);
         setGenerationStatus({ sketch: 'done', character: 'active', model: 'pending' });
         setProgress(20);
         try {
             setProgress(40);
-            const data = await callGenerateAPI(currentSketchData);
+            const data = await callGenerateAPI(currentSketchData, controller.signal);
+            if (cancelRequestedRef.current) return;
             setProgress(70);
             if (data.image_base64) {
                 const imageUrl = `data:image/png;base64,${data.image_base64}`;
@@ -146,12 +158,14 @@ export default function useGeneration({
                 throw new Error('后端未返回图片数据');
             }
         } catch (err) {
+            if (err.name === 'AbortError' || cancelRequestedRef.current) return;
             console.error('重新生成失败:', err);
             setError(err.message);
             setGenerationStatus({ sketch: 'done', character: 'error', model: 'pending' });
             setProgress(0);
         } finally {
             setLoading(false);
+            abortControllerRef.current = null;
         }
     }, [callGenerateAPI, currentUser, incrementGenCount, generatedImages.length]);
 
@@ -354,6 +368,18 @@ export default function useGeneration({
         batchIdRef.current = null;
     }, []);
 
+    const handleCancelGeneration = useCallback(() => {
+        cancelRequestedRef.current = true;
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setLoading(false);
+        setProgress(0);
+        setGenerationStatus({ sketch: 'done', character: 'pending', model: 'pending' });
+        setError(null);
+    }, []);
+
     return {
         loading,
         generatedImages,
@@ -378,6 +404,7 @@ export default function useGeneration({
         handleDeleteVariant,
         handleDeleteModelFromHistory,
         clearGeneration,
+        handleCancelGeneration,
         setGeneratedImages,
         setSelectedVariantIndex,
         setConfirmedImage,

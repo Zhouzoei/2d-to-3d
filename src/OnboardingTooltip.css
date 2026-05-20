@@ -57,6 +57,13 @@
     transform: translateY(-50%) rotate(45deg);
 }
 
+/* 箭头指向下方 */
+.arrow-bottom {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+}
+
 .tooltip-header {
     display: flex;
     justify-content: space-between;

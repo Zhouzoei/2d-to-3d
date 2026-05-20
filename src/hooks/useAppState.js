@@ -125,5 +125,8 @@ export default function useAppState() {
         handleSavePresets: sketch.handleSavePresets,
         handleCancelEdits: sketch.handleCancelEdits,
         handleLoadRecord: gen.handleLoadRecord,
+        handleCancelGeneration: gen.handleCancelGeneration,
+        setShowWelcome: sketch.setShowWelcome,
+        setShowOnboarding: sketch.setShowOnboarding,
     };
 }

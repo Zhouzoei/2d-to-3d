@@ -34,6 +34,11 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     const historyRef = useRef([]);
     const historyIndexRef = useRef(-1);
 
+    const isInitializedRef = useRef(false);
+    const prevCanvasSizeRef = useRef({ width: 500, height: 500 });
+    const canvasContentRef = useRef(null);
+    const oldSizeForRestoreRef = useRef({ width: 500, height: 500 });
+
     useEffect(() => {
         historyRef.current = history;
         historyIndexRef.current = historyIndex;
@@ -47,10 +52,19 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         if (!container) return;
         const containerWidth = container.clientWidth;
         const size = Math.min(containerWidth, 1024);
-        if (size !== canvasSize.width) {
+        if (size !== prevCanvasSizeRef.current.width) {
+            const canvas = canvasRef.current;
+            if (canvas && isInitializedRef.current) {
+                canvasContentRef.current = canvas.toDataURL();
+                oldSizeForRestoreRef.current = { 
+                    width: prevCanvasSizeRef.current.width, 
+                    height: prevCanvasSizeRef.current.height 
+                };
+            }
+            prevCanvasSizeRef.current = { width: size, height: size };
             setCanvasSize({ width: size, height: size });
         }
-    }, [canvasSize.width]);
+    }, []);
 
     useEffect(() => {
         resizeCanvas();
@@ -63,8 +77,6 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         };
     }, [resizeCanvas]);
 
-    const isInitializedRef = useRef(false);
-
     const saveToHistory = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -75,8 +87,12 @@ const SketchCanvasNative = ({ onSketchChange }) => {
             return newHistory;
         });
         setHistoryIndex(prev => prev + 1);
-        if (onSketchChange) onSketchChange(imageData);
-    }, [onSketchChange]);
+        const handler = onSketchChangeRef.current;
+        if (handler) handler(imageData);
+    }, []);
+
+    const onSketchChangeRef = useRef(onSketchChange);
+    useEffect(() => { onSketchChangeRef.current = onSketchChange; }, [onSketchChange]);
 
     const getCoordinates = useCallback((e) => {
         const canvas = canvasRef.current;
@@ -173,6 +189,55 @@ const SketchCanvasNative = ({ onSketchChange }) => {
             setHistoryIndex(prevIndex);
         }
     };
+
+    const redo = () => {
+        if (historyRef.current && historyIndexRef.current < historyRef.current.length - 1) {
+            const nextIndex = historyIndexRef.current + 1;
+            const nextImage = historyRef.current[nextIndex];
+            const img = new Image();
+            img.onload = () => {
+                const canvas = canvasRef.current;
+                const ctx = canvas?.getContext('2d');
+                if (!ctx || !canvas) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                if (onSketchChange) onSketchChange(nextImage);
+            };
+            img.src = nextImage;
+            setHistoryIndex(nextIndex);
+        }
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+                e.preventDefault();
+                redo();
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Z') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    redo();
+                } else {
+                    undo();
+                }
+                return;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const clearCanvas = () => {
         const canvas = canvasRef.current;
@@ -283,7 +348,6 @@ const SketchCanvasNative = ({ onSketchChange }) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const previousData = isInitializedRef.current ? canvas.toDataURL() : null;
         canvas.width = canvasSize.width;
         canvas.height = canvasSize.height;
 
@@ -301,20 +365,24 @@ const SketchCanvasNative = ({ onSketchChange }) => {
             const initialData = canvas.toDataURL();
             setHistory([initialData]);
             setHistoryIndex(0);
-            if (onSketchChange) onSketchChange(initialData);
+            const handler = onSketchChangeRef.current;
+            if (handler) handler(initialData);
             isInitializedRef.current = true;
-        } else if (previousData) {
+        } else if (canvasContentRef.current) {
+            const oldWidth = oldSizeForRestoreRef.current.width;
+            const oldHeight = oldSizeForRestoreRef.current.height;
             const img = new Image();
             img.onload = () => {
                 ctx.globalCompositeOperation = 'source-over';
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, oldWidth, oldHeight, 0, 0, canvasSize.width, canvasSize.height);
                 applyTool(ctx, toolRef.current);
+                canvasContentRef.current = null;
             };
-            img.src = previousData;
+            img.src = canvasContentRef.current;
         }
 
         canvas.style.touchAction = 'none';
-    }, [canvasSize, onSketchChange]);
+    }, [canvasSize]);
 
     return (
         <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', width: '100%', position: 'relative' }}>

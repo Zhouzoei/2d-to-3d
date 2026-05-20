@@ -15,7 +15,9 @@
 
 /* 弹窗内容 */
 .auth-modal {
-    background: #C5E8ED;
+    background: linear-gradient(#C5E8ED, #C5E8ED) padding-box,
+                linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%) border-box;
+    border: 3px solid transparent;
     border-radius: 28px;
     width: 90%;
     max-width: 420px;
@@ -34,21 +36,6 @@
         opacity: 1;
         transform: scale(1);
     }
-}
-
-/* 渐变边框 */
-.auth-modal::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 28px;
-    padding: 3px;
-    background: linear-gradient(135deg, #2C8A9A 0%, #9B6FB0 50%, #2C8A9A 100%);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    pointer-events: none;
 }
 
 /* 弹窗头部 */
@@ -182,6 +169,37 @@
     font-size: 32px;
     font-weight: bold;
     color: white;
+    overflow: hidden;
+    position: relative;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.edit-avatar {
+    cursor: pointer;
+}
+
+.avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+}
+
+.edit-avatar:hover .avatar-edit-overlay {
+    opacity: 1;
 }
 
 .user-name-large {
@@ -196,13 +214,13 @@
     margin-top: 4px;
 }
 
-.user-stats {
+.user-stats-row {
     display: flex;
     justify-content: space-around;
     padding: 16px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.4);
     border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .stat-item {
@@ -215,13 +233,180 @@
     color: #0A2A33;
 }
 
+.streak-number {
+    font-size: 22px;
+}
+
 .stat-label {
     font-size: 12px;
     color: #2C5F6B;
+    margin-top: 2px;
+}
+
+/* 区块标题 */
+.user-section {
+    margin-bottom: 18px;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0A2A33;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 风格分布 */
+.style-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.style-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.style-bar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1A4A55;
+    width: 56px;
+    flex-shrink: 0;
+}
+
+.style-bar-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.style-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2C8A9A, #9B6FB0);
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+
+.style-bar-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0A2A33;
+    width: 20px;
+    text-align: right;
+}
+
+/* 最近动态 */
+.activity-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.activity-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.activity-thumb-placeholder {
+    font-size: 18px;
+}
+
+.activity-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-prompt {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0A2A33;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #4A6F7A;
+    margin-top: 2px;
+}
+
+.activity-badge-3d {
+    background: rgba(44, 138, 154, 0.15);
+    color: #2C8A9A;
+    font-weight: 700;
+    padding: 0 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.activity-badge-fav {
+    font-size: 11px;
+}
+
+/* 操作按钮区 */
+.user-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.edit-profile-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0A2A33;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-profile-btn:hover {
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .logout-btn {
-    width: 100%;
+    flex: 1;
     padding: 12px;
     font-size: 14px;
     font-weight: 600;
@@ -236,6 +421,148 @@
 .logout-btn:hover {
     background: rgba(231, 76, 60, 0.2);
     border-color: #e74c3c;
+}
+
+/* 编辑模式的按钮 */
+.edit-actions-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.edit-cancel-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A4A55;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.edit-save-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(44, 138, 154, 0.2);
+}
+
+.edit-save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(44, 138, 154, 0.3);
+}
+
+/* 修改密码 */
+.password-toggle-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2C5F6B;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+}
+
+.password-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.password-change-form {
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    margin-bottom: 6px;
+}
+
+.password-change-form .form-group {
+    margin-bottom: 14px;
+}
+
+.password-change-form .form-group:last-of-type {
+    margin-bottom: 14px;
+}
+
+.password-change-form input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.password-change-form input:focus {
+    outline: none;
+    border-color: #2C8A9A;
+    background: white;
+}
+
+.password-change-form label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0A2A33;
+    margin-bottom: 4px;
+}
+
+.password-save-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, #2C8A9A, #9B6FB0);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.password-save-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* 重新开始指引按钮 */
+.restart-guide-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2C5F6B;
+    background: transparent;
+    border: 1px dashed rgba(44, 138, 154, 0.35);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+
+.restart-guide-btn:hover {
+    background: rgba(44, 138, 154, 0.08);
+    border-color: rgba(44, 138, 154, 0.6);
+    color: #0A2A33;
 }
 
 /* 提示消息 */
