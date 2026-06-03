@@ -147,6 +147,55 @@
     border-color: rgba(255, 255, 255, 0.9);
 }
 
+/* 忘记密码 */
+.forgot-password-row {
+    display: flex;
+    justify-content: flex-end;
+    margin: 6px 0 0;
+}
+
+.forgot-password-link {
+    background: transparent;
+    border: none;
+    color: #2C8A9A;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    transition: color 0.2s;
+}
+
+.forgot-password-link:hover {
+    color: #1A4A55;
+    text-decoration: underline;
+}
+
+.forgot-desc {
+    font-size: 13px;
+    color: #2C5F6B;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.forgot-back-btn {
+    background: transparent;
+    border: none;
+    color: #2C8A9A;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 10px 0;
+    margin-top: 6px;
+    display: block;
+    width: 100%;
+    text-align: center;
+    transition: color 0.2s;
+}
+
+.forgot-back-btn:hover {
+    color: #1A4A55;
+}
+
 /* 用户面板 */
 .user-panel {
     padding: 20px 28px;

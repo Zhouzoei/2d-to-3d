@@ -18,21 +18,27 @@ export default function useAppState() {
 
     const gen = useGeneration({
         sketchData: sketch.sketchData,
-        prompt: sketch.prompt,
+        positivePrompt: sketch.positivePrompt,
+        negativePrompt: sketch.negativePrompt,
         selectedStyle: sketch.selectedStyle,
-        creativity: sketch.creativity,
-        geometryDetail: sketch.geometryDetail,
-        textureQuality: sketch.textureQuality,
+        adherenceToSketch: sketch.adherenceToSketch,
+        steps: sketch.steps,
+        sketchType: sketch.sketchType,
+        seed: sketch.seed,
+        seedLocked: sketch.seedLocked,
         getStylePrompt: sketch.getStylePrompt,
         onUpdateSketchData: (data) => sketch.setSketchData(data),
         onProceedTo3D: (imageData) => model3d.start3DGeneration(imageData),
         onUpdateParams: (params) => {
-            if (params.prompt !== undefined) sketch.setPrompt(params.prompt);
+            if (params.positivePrompt !== undefined) sketch.setPositivePrompt(params.positivePrompt);
+            if (params.negativePrompt !== undefined) sketch.setNegativePrompt(params.negativePrompt);
             if (params.selectedStyle !== undefined) sketch.setSelectedStyle(params.selectedStyle);
-            if (params.creativity !== undefined) sketch.setCreativity(params.creativity);
-            if (params.geometryDetail !== undefined) sketch.setGeometryDetail(params.geometryDetail);
-            if (params.textureQuality !== undefined) sketch.setTextureQuality(params.textureQuality);
+            if (params.adherenceToSketch !== undefined) sketch.setAdherenceToSketch(params.adherenceToSketch);
+            if (params.steps !== undefined) sketch.setSteps(params.steps);
+            if (params.sketchType !== undefined) sketch.setSketchType(params.sketchType);
+            if (params.seed !== undefined) sketch.setSeed(params.seed);
         },
+        onRandomizeSeed: sketch.randomizeSeed,
         onCloseCropModal: () => sketch.setShowCropModal(false),
         currentUser,
         incrementGenCount,
@@ -58,13 +64,16 @@ export default function useAppState() {
         tempSketchData: sketch.tempSketchData,
 
         sketchData: sketch.sketchData,
-        prompt: sketch.prompt,
+        positivePrompt: sketch.positivePrompt,
+        negativePrompt: sketch.negativePrompt,
         loading: gen.loading,
         isDownloading: model3d.isDownloading,
         selectedStyle: sketch.selectedStyle,
-        creativity: sketch.creativity,
-        geometryDetail: sketch.geometryDetail,
-        textureQuality: sketch.textureQuality,
+        adherenceToSketch: sketch.adherenceToSketch,
+        steps: sketch.steps,
+        sketchType: sketch.sketchType,
+        seed: sketch.seed,
+        seedLocked: sketch.seedLocked,
 
         isEditMode: sketch.isEditMode,
         editingKey: sketch.editingKey,
@@ -90,10 +99,14 @@ export default function useAppState() {
         setShowCropModal: sketch.setShowCropModal,
         setShowHistoryModal: gen.setShowHistoryModal,
 
-        setPrompt: sketch.setPrompt,
-        setCreativity: sketch.setCreativity,
-        setGeometryDetail: sketch.setGeometryDetail,
-        setTextureQuality: sketch.setTextureQuality,
+        setPositivePrompt: sketch.setPositivePrompt,
+        setNegativePrompt: sketch.setNegativePrompt,
+        setAdherenceToSketch: sketch.setAdherenceToSketch,
+        setSteps: sketch.setSteps,
+        setSketchType: sketch.setSketchType,
+        setSeed: sketch.setSeed,
+        randomizeSeed: sketch.randomizeSeed,
+        toggleSeedLock: sketch.toggleSeedLock,
 
         handleEnterApp: sketch.handleEnterApp,
         handleOnboardingComplete: sketch.handleOnboardingComplete,
@@ -116,7 +129,7 @@ export default function useAppState() {
         handleDownload2D: gen.handleDownload2D,
         handleDownload3D: model3d.handleDownload3D,
 
-        getTextureQualityText: sketch.getTextureQualityText,
+        getSketchTypeText: sketch.getSketchTypeText,
         handleStyleClick: sketch.handleStyleClick,
         getStyleLabel: sketch.getStyleLabel,
         handleEditFieldChange: sketch.handleEditFieldChange,

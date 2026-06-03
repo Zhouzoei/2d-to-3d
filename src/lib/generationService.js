@@ -11,11 +11,12 @@ export const generationService = {
           custom_name: generationData.customName || '',
           is_favorite: false,
           sketch_url: generationData.sketchUrl || null,
-          prompt: generationData.prompt,
+          positive_prompt: generationData.positivePrompt,
+          negative_prompt: generationData.negativePrompt || '',
           style: generationData.style,
-          creativity: generationData.creativity,
-          geometry_detail: generationData.geometryDetail,
-          texture_quality: generationData.textureQuality,
+          steps: generationData.steps,
+          sketch_type: generationData.sketchType,
+          seed: generationData.seed,
           variants: generationData.variants || [],
           models: []
         })
@@ -206,7 +207,7 @@ export const storageService = {
 
       const path = `${userId}/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('images')
         .upload(path, blob, {
           cacheControl: '3600',
@@ -243,7 +244,7 @@ export const storageService = {
 
       const path = `${userId}/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('models')
         .upload(path, blob, {
           cacheControl: '3600',

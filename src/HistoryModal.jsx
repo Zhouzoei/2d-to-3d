@@ -4,27 +4,45 @@ import { generationService } from './lib/generationService';
 import './HistoryModal.css';
 
 function migrateOldRecord(record) {
-    if (record.variants) return record;
-    return {
-        batchId: record.id || Date.now(),
-        createdAt: record.createdAt,
-        isFavorite: record.isFavorite || false,
-        customName: record.customName || '',
-        variants: [{
-            fullImage: record.fullImage,
-            thumbnail: record.thumbnail,
-            prompt: record.prompt,
-            style: record.style,
-            creativity: record.creativity,
-            geometryDetail: record.geometryDetail,
-            textureQuality: record.textureQuality,
-        }],
-        models: record.has3D ? [{
-            modelUrl: record.modelThumbnail,
-            modelThumbnail: record.modelThumbnail,
+    if (!record.variants) {
+        // 旧版单图格式 → 新版
+        record = {
+            batchId: record.id || Date.now(),
             createdAt: record.createdAt,
-        }] : [],
-    };
+            isFavorite: record.isFavorite || false,
+            customName: record.customName || '',
+            variants: [{
+                fullImage: record.fullImage,
+                thumbnail: record.thumbnail,
+                positivePrompt: record.positivePrompt || record.prompt,
+                negativePrompt: record.negativePrompt || '',
+                style: record.style,
+                adherenceToSketch: record.adherenceToSketch || record.creativity,
+                steps: record.steps || 30,
+                sketchType: record.sketchType || 'scribble',
+            }],
+            models: record.has3D ? [{
+                modelUrl: record.modelThumbnail,
+                modelThumbnail: record.modelThumbnail,
+                createdAt: record.createdAt,
+            }] : [],
+            sketchData: record.sketchData,
+        };
+    }
+    // 统一 variants 内字段为 camelCase
+    if (record.variants) {
+        record.variants = record.variants.map(v => ({
+            fullImage: v.fullImage || v.full_image,
+            thumbnail: v.thumbnail || v.full_image,
+            positivePrompt: v.positivePrompt || v.positive_prompt || v.prompt || '',
+            negativePrompt: v.negativePrompt || v.negative_prompt || '',
+            style: v.style,
+            adherenceToSketch: v.adherenceToSketch ?? v.adherence_to_sketch ?? v.creativity,
+            steps: v.steps ?? 30,
+            sketchType: v.sketchType || v.sketch_type || 'scribble',
+        }));
+    }
+    return record;
 }
 
 function parseRecordTime(record) {
@@ -100,11 +118,12 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                 variants: (dbRecord.variants || []).map(v => ({
                                     fullImage: v.full_image,
                                     thumbnail: v.thumbnail,
-                                    prompt: v.prompt,
+                                    positivePrompt: v.positive_prompt || v.prompt,
+                                    negativePrompt: v.negative_prompt || '',
                                     style: v.style,
-                                    creativity: v.creativity,
-                                    geometryDetail: v.geometry_detail,
-                                    textureQuality: v.texture_quality,
+                                    adherenceToSketch: v.adherence_to_sketch || v.creativity,
+                                    steps: v.steps || 30,
+                                    sketchType: v.sketch_type || 'scribble',
                                 })),
                                 models: (dbRecord.models || []).map(m => ({
                                     modelUrl: m.model_url,
@@ -125,8 +144,35 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                         if (stored) {
                             const records = JSON.parse(stored);
                             const migrated = records.map(migrateOldRecord);
-                            migrated.sort((a, b) => b.batchId - a.batchId);
-                            setHistory(migrated);
+                            // 按 batchId 去重（保留最新的）+ 同 sketchData 合并变体
+                            const seenBatch = new Set();
+                            const mergedBySketch = new Map();
+                            for (const r of migrated) {
+                                if (!seenBatch.has(r.batchId)) {
+                                    seenBatch.add(r.batchId);
+                                    const key = r.sketchData || `__noid_${r.batchId}`;
+                                    if (mergedBySketch.has(key)) {
+                                        const existing = mergedBySketch.get(key);
+                                        const existingUrls = new Set(existing.variants.map(v => v.fullImage));
+                                        for (const v of r.variants) {
+                                            if (!existingUrls.has(v.fullImage)) {
+                                                existing.variants.push(v);
+                                                existingUrls.add(v.fullImage);
+                                            }
+                                        }
+                                        if (r.models) {
+                                            for (const m of r.models) existing.models.push(m);
+                                        }
+                                    } else {
+                                        mergedBySketch.set(key, { ...r, variants: [...r.variants] });
+                                    }
+                                }
+                            }
+                            const cleaned = Array.from(mergedBySketch.values());
+                            cleaned.sort((a, b) => b.batchId - a.batchId);
+                            // 回写清理后的数据
+                            localStorage.setItem('generateHistory', JSON.stringify(cleaned));
+                            setHistory(cleaned);
                         } else {
                             setHistory([]);
                         }
@@ -137,6 +183,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
             };
             loadHistory();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, currentUser]);
 
     useEffect(() => {
@@ -147,7 +194,15 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     }, [editingRecordId]);
 
     const displayHistory = useMemo(() => {
-        let result = history;
+        // 最终去重：确保同一 batchId 不会出现两次
+        const seen = new Set();
+        const deduped = history.filter(r => {
+            if (seen.has(r.batchId)) return false;
+            seen.add(r.batchId);
+            return true;
+        });
+
+        let result = deduped;
         if (filter === 'favorite') {
             result = result.filter(r => r.isFavorite);
         }

@@ -21,7 +21,6 @@ const Model3DPreview = ({ modelUrl, loading }) => {
   const modelRef = useRef(null);
 
   const [displayMode, setDisplayMode] = useState(DISPLAY_MODES.TEXTURED);
-  const [error, setError] = useState(null);
   const originalMaterialsRef = useRef(new Map());
 
   const switchDisplayMode = (mode) => {

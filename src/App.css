@@ -27,6 +27,7 @@ body {
   flex-direction: column;
   background: radial-gradient(circle at 0% 0%, rgba(172, 229, 238, 0.35) 0%, transparent 60%),
               radial-gradient(circle at 100% 100%, rgba(221, 160, 221, 0.2) 0%, transparent 60%);
+  zoom: 0.8;
 }
 
 .main-content {
@@ -634,12 +635,24 @@ body {
 
 .prompt-input-wrapper {
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  flex-direction: column;
+  gap: 12px;
   border: 1.5px solid rgba(255, 255, 255, 0.65);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.85);
-  overflow: hidden;
+  padding: 16px;
+}
+
+.prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prompt-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A3A44;
 }
 
 .prompt-style-badge {
@@ -656,27 +669,59 @@ body {
   border-right: 1.5px solid rgba(44, 138, 154, 0.25);
 }
 
+.sketch-type-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sketch-type-select {
+  width: 100%;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1A3A44;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sketch-type-select:focus {
+  outline: none;
+  border-color: #1A3A44;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
 .prompt-wrapper .prompt-input {
   width: 100%;
   border: 1.5px solid rgba(255, 255, 255, 0.65);
-  border-radius: 20px;
-  padding: 12px 16px;
-  font-size: 18px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 16px;
   font-family: 'Inter', sans-serif;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   color: #1A3A44;
   font-weight: 500;
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px;
 }
 
 .prompt-input-wrapper .prompt-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding: 12px 16px;
+  width: 100%;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 14px;
+}
+
+.prompt-input.positive {
+  border-color: rgba(44, 138, 154, 0.3);
+}
+
+.prompt-input.negative {
+  border-color: rgba(221, 160, 221, 0.3);
 }
 
 .prompt-wrapper .prompt-input:focus {
@@ -860,6 +905,45 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 批次分组标识：每组3张图之间加分隔线 */
+.variant-thumb.batch-start {
+  position: relative;
+}
+
+.variant-thumb.batch-start:not(:first-child) {
+  margin-left: 6px;
+}
+
+.variant-thumb.batch-start:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 15%;
+  height: 70%;
+  width: 2px;
+  background: rgba(44, 138, 154, 0.25);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.batch-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(44, 138, 154, 0.85);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .variant-actions {
@@ -1146,6 +1230,77 @@ body {
   font-weight: 500;
   color: #2C5F6B;
   margin-bottom: 8px;
+}
+
+.param-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #1A3A44;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231A3A44' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.param-select:focus {
+  outline: none;
+  border-color: #1A3A44;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.seed-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seed-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-family: 'Inter', monospace;
+  color: #1A3A44;
+  font-weight: 500;
+}
+
+.seed-input:focus {
+  outline: none;
+  border-color: #1A3A44;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.seed-btn {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.seed-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #1A3A44;
+}
+
+.seed-btn.locked {
+  background: rgba(44, 138, 154, 0.2);
+  border-color: rgba(44, 138, 154, 0.5);
 }
 
 .param-divider {

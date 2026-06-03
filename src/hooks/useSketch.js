@@ -49,11 +49,14 @@ export default function useSketch({ onClearAll }) {
     const [tempSketchData, setTempSketchData] = useState(null);
 
     const [sketchData, setSketchData] = useState(null);
-    const [prompt, setPrompt] = useState('');
+    const [positivePrompt, setPositivePrompt] = useState('');
+    const [negativePrompt, setNegativePrompt] = useState('');
     const [selectedStyle, setSelectedStyle] = useState('');
-    const [creativity, setCreativity] = useState(0.7);
-    const [geometryDetail, setGeometryDetail] = useState(0.8);
-    const [textureQuality, setTextureQuality] = useState(0.9);
+    const [adherenceToSketch, setAdherenceToSketch] = useState(0.5);
+    const [steps, setSteps] = useState(30);
+    const [sketchType, setSketchType] = useState('scribble');
+    const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1000000));
+    const [seedLocked, setSeedLocked] = useState(false);
 
     const [editedPresets, setEditedPresets] = useState(() => loadEditedPresets());
     const [editingKey, setEditingKey] = useState(null);
@@ -89,10 +92,10 @@ export default function useSketch({ onClearAll }) {
 
     const handleGenerate = useCallback(() => {
         if (!sketchData) { alert('请先绘制草图'); return; }
-        if (!prompt.trim()) { alert('请输入文字描述'); return; }
+        if (!positivePrompt.trim()) { alert('请输入正向提示词'); return; }
         setTempSketchData(sketchData);
         setShowCropModal(true);
-    }, [sketchData, prompt]);
+    }, [sketchData, positivePrompt]);
 
     const handleStyleClick = useCallback((styleKey) => {
         if (styleKey === '自定义') {
@@ -162,10 +165,22 @@ export default function useSketch({ onClearAll }) {
 
     const hasEdits = Object.keys(editedPresets).length > 0;
 
-    const getTextureQualityText = useCallback((val) => {
-        if (val >= 0.7) return '高';
-        if (val >= 0.4) return '中';
-        return '低';
+    const getSketchTypeText = useCallback((type) => {
+        const types = {
+            'scribble': '涂鸦',
+            'canny': '边缘',
+            'lineart': '线稿',
+            'mlsd': '直线检测'
+        };
+        return types[type] || type;
+    }, []);
+
+    const randomizeSeed = useCallback(() => {
+        setSeed(Math.floor(Math.random() * 1000000));
+    }, []);
+
+    const toggleSeedLock = useCallback(() => {
+        setSeedLocked(prev => !prev);
     }, []);
 
     return {
@@ -174,11 +189,14 @@ export default function useSketch({ onClearAll }) {
         showCropModal,
         tempSketchData,
         sketchData,
-        prompt,
+        positivePrompt,
+        negativePrompt,
         selectedStyle,
-        creativity,
-        geometryDetail,
-        textureQuality,
+        adherenceToSketch,
+        steps,
+        sketchType,
+        seed,
+        seedLocked,
         isEditMode,
         editingKey,
         editingLabel,
@@ -190,11 +208,15 @@ export default function useSketch({ onClearAll }) {
         setShowCropModal,
         setTempSketchData,
         setSketchData,
-        setPrompt,
+        setPositivePrompt,
+        setNegativePrompt,
         setSelectedStyle,
-        setCreativity,
-        setGeometryDetail,
-        setTextureQuality,
+        setAdherenceToSketch,
+        setSteps,
+        setSketchType,
+        setSeed,
+        randomizeSeed,
+        toggleSeedLock,
         handleOnboardingComplete,
         handleOnboardingSkip,
         handleSketchChange,
@@ -207,6 +229,6 @@ export default function useSketch({ onClearAll }) {
         handleCancelEdits,
         getStyleLabel,
         getStylePrompt,
-        getTextureQualityText,
+        getSketchTypeText,
     };
 }

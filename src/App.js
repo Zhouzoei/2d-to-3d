@@ -17,19 +17,20 @@ const AppContent = () => {
     const {
         showWelcome, showOnboarding, showAuthModal, showCropModal, showHistoryModal,
         tempSketchData, sketchData, loading, isDownloading, selectedStyle,
-        creativity, geometryDetail, textureQuality, generatedImage, generatedImages,
+        adherenceToSketch, steps, sketchType, seed, seedLocked, generatedImage, generatedImages,
         selectedVariantIndex, confirmedImage, show3DPreview,
         generatedModels, selectedModelIndex,
         generationStatus, progress, error, currentModelUrl,
         setShowAuthModal, setShowCropModal, setShowHistoryModal,
-        prompt, setPrompt, setCreativity, setGeometryDetail, setTextureQuality,
+        positivePrompt, negativePrompt, setPositivePrompt, setNegativePrompt, 
+        setAdherenceToSketch, setSteps, setSketchType, setSeed, randomizeSeed, toggleSeedLock,
         handleEnterApp, handleOnboardingComplete, handleOnboardingSkip,
         handleSketchChange, handleGenerate, handleCropConfirm,
         handleRegenerate, handleSelectVariant, handleConfirm2D,
         handleDeleteVariant,
         handleRegenerate3D, handleSelectModel,
         handleDeleteModel,
-        handleDownload2D, handleDownload3D, getTextureQualityText,
+        handleDownload2D, handleDownload3D,
         handleStyleClick, getStyleLabel,
         isEditMode, editingKey, editingLabel, editingPrompt, hasEdits,
         handleEditFieldChange, handleApplyEdit, handleCancelEdit,
@@ -76,14 +77,14 @@ const AppContent = () => {
     return (
         <>
             {showWelcome && <WelcomeScreen onEnter={handleEnterApp} />}
+            {!showWelcome && showOnboarding && (
+                <OnboardingTooltip
+                    onComplete={handleOnboardingComplete}
+                    onSkip={handleOnboardingSkip}
+                />
+            )}
 
             <div className="app">
-                {!showWelcome && showOnboarding && (
-                    <OnboardingTooltip
-                        onComplete={handleOnboardingComplete}
-                        onSkip={handleOnboardingSkip}
-                    />
-                )}
                 <CropModal
                     isOpen={showCropModal}
                     onClose={() => setShowCropModal(false)}
@@ -157,7 +158,14 @@ const AppContent = () => {
                                         />
                                     </div>
                                     <div className="prompt-wrapper">
-                                        <TextInput value={prompt} onChange={setPrompt} selectedStyle={selectedStyle} getStyleLabel={getStyleLabel} />
+                                        <TextInput 
+                                            positivePrompt={positivePrompt}
+                                            negativePrompt={negativePrompt}
+                                            onChangePositive={setPositivePrompt}
+                                            onChangeNegative={setNegativePrompt}
+                                            selectedStyle={selectedStyle}
+                                            getStyleLabel={getStyleLabel}
+                                        />
                                     </div>
                                     <div className="generate-row">
                                     <button
@@ -247,48 +255,87 @@ const AppContent = () => {
                                 <div className="card-content">
                                     <div className="param-group">
                                         <div className="param-row">
-                                            <span className="param-label">创意度 (CFG)</span>
-                                            <span className="param-value">{creativity.toFixed(2)}</span>
+                                            <span className="param-label">贴近草图程度</span>
+                                            <span className="param-value">{adherenceToSketch.toFixed(2)}</span>
                                         </div>
-                                        <div className="param-desc">数值越高，生成结果越多样化</div>
+                                        <div className="param-desc">低值=AI自由发挥，高值=严格遵循草图轮廓</div>
                                         <input
                                             type="range"
                                             min="0"
                                             max="1"
-                                            step="0.01"
-                                            value={creativity}
-                                            onChange={(e) => setCreativity(parseFloat(e.target.value))}
+                                            step="0.05"
+                                            value={adherenceToSketch}
+                                            onChange={(e) => setAdherenceToSketch(parseFloat(e.target.value))}
                                         />
                                     </div>
                                     <div className="param-group">
                                         <div className="param-row">
-                                            <span className="param-label">几何细节</span>
-                                            <span className="param-value">{geometryDetail.toFixed(2)}</span>
+                                            <span className="param-label">迭代步数</span>
+                                            <span className="param-value">{steps}</span>
                                         </div>
-                                        <div className="param-desc">网格分辨率与结构复杂度</div>
+                                        <div className="param-desc">生成质量与速度的平衡（10-30步）</div>
                                         <input
                                             type="range"
-                                            min="0"
-                                            max="1"
-                                            step="0.01"
-                                            value={geometryDetail}
-                                            onChange={(e) => setGeometryDetail(parseFloat(e.target.value))}
+                                            min="10"
+                                            max="30"
+                                            step="1"
+                                            value={steps}
+                                            onChange={(e) => setSteps(parseInt(e.target.value))}
                                         />
                                     </div>
                                     <div className="param-group">
                                         <div className="param-row">
-                                            <span className="param-label">纹理质量</span>
-                                            <span className="param-value">{getTextureQualityText(textureQuality)}</span>
+                                            <span className="param-label">草图类型</span>
                                         </div>
-                                        <div className="param-desc">UV 分辨率与纹理细节层级</div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="1"
-                                            step="0.01"
-                                            value={textureQuality}
-                                            onChange={(e) => setTextureQuality(parseFloat(e.target.value))}
-                                        />
+                                        <div className="param-desc">决定如何理解用户的草图输入</div>
+                                        <select
+                                            className="param-select"
+                                            value={sketchType}
+                                            onChange={(e) => setSketchType(e.target.value)}
+                                        >
+                                            <option value="scribble">涂鸦 - 适合粗糙草图</option>
+                                            <option value="canny">边缘 - 适合清晰轮廓</option>
+                                            <option value="lineart">线稿 - 适合精致线稿</option>
+                                            <option value="mlsd">直线检测 - 适合建筑/几何</option>
+                                        </select>
+                                    </div>
+                                    <div className="param-group">
+                                        <div className="param-row">
+                                            <span className="param-label">随机种子</span>
+                                        </div>
+                                        <div className="param-desc">锁定=每次生成相同结果；随机=尝试不同变体</div>
+                                        <div className="seed-control">
+                                            <input
+                                                type="number"
+                                                className="seed-input"
+                                                value={seed}
+                                                onChange={(e) => setSeed(parseInt(e.target.value) || 0)}
+                                            />
+                                            <button 
+                                                className="seed-btn randomize"
+                                                onClick={randomizeSeed}
+                                                title="随机种子"
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M4 4l17 17"/>
+                                                </svg>
+                                            </button>
+                                            <button 
+                                                className={`seed-btn lock ${seedLocked ? 'locked' : ''}`}
+                                                onClick={toggleSeedLock}
+                                                title={seedLocked ? '解锁种子' : '锁定种子'}
+                                            >
+                                                {seedLocked ? (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M12 1C8.676 1 6 3.676 6 7v2H4v14h16V9h-2V7c0-3.324-2.676-6-6-6zm0 2c2.276 0 4 1.724 4 4v2H8V7c0-2.276 1.724-4 4-4z"/>
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="param-divider"></div>
                                 </div>
@@ -351,20 +398,25 @@ const AppContent = () => {
                                     {generatedImages.length > 0 && (
                                         <div className="variant-section">
                                             <div className="variant-strip">
-                                                {generatedImages.map((img, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className={`variant-thumb ${selectedVariantIndex === i ? 'active' : ''}`}
-                                                        onClick={() => handleSelectVariant(i)}
-                                                    >
-                                                        <img src={img} alt={`变体 ${i + 1}`} />
-                                                        <span className="variant-num">{i + 1}</span>
-                                                        <button
-                                                            className="variant-thumb-del"
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteVariant(i); }}
-                                                        >✕</button>
-                                                    </div>
-                                                ))}
+                                                {generatedImages.map((img, i) => {
+                                                    const batchNum = Math.floor(i / 3) + 1;
+                                                    const isFirstInBatch = i % 3 === 0;
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={`variant-thumb ${selectedVariantIndex === i ? 'active' : ''} ${isFirstInBatch ? 'batch-start' : ''}`}
+                                                            onClick={() => handleSelectVariant(i)}
+                                                        >
+                                                            <img src={img} alt={`变体 ${i + 1}`} />
+                                                            {isFirstInBatch && <span className="batch-badge">{batchNum}</span>}
+                                                            <span className="variant-num">{i + 1}</span>
+                                                            <button
+                                                                className="variant-thumb-del"
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteVariant(i); }}
+                                                            >✕</button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                             <div className="variant-actions">
                                                 <button

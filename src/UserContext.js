@@ -140,7 +140,7 @@ export const UserProvider = ({ children }) => {
         if (!currentUser) return { success: false, message: '未登录' };
 
         try {
-            const { data, error } = await supabase.auth.updateUser({
+            const { error } = await supabase.auth.updateUser({
                 data: { name, avatar }
             });
 
@@ -260,12 +260,12 @@ export const UserProvider = ({ children }) => {
                         }
                     });
 
-                    recentActivity = history.slice(0, 3).map(record => {
+                        recentActivity = history.slice(0, 3).map(record => {
                         const first = record.variants[0];
                         return {
                             batchId: record.batchId,
                             createdAt: record.createdAt,
-                            prompt: record.customName || first?.prompt || first?.style || '未命名',
+                            prompt: record.customName || first?.positivePrompt || first?.prompt || first?.style || '未命名',
                             has3D: record.models && record.models.length > 0,
                             isFavorite: record.isFavorite,
                             thumbnail: first?.thumbnail || first?.fullImage

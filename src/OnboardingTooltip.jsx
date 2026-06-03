@@ -4,56 +4,56 @@ import './OnboardingTooltip.css';
 const TIPS = [
     {
         title: '灵动画布',
-        content: '在这里绘制你的角色草图，支持画笔、橡皮、撤销、上传图片等多种工具。\n下方可以输入文字描述，详细描述角色的特征。',
+        content: '在这里绘制你的角色草图。\n支持画笔（可调粗细/颜色）、橡皮擦、撤销和上传图片。\n下方输入正向/反向提示词来精确描述角色特征。',
         targetSelector: '.sketch-col',
         placement: 'right',
         highlight: true
     },
     {
         title: '风格预设',
-        content: '快速选择奇幻、科幻、可爱、写实等艺术风格。\n点击即可切换，系统会自动填充对应的提示词。',
+        content: '快速选择奇幻、科幻、可爱、写实等艺术风格。\n点击即可切换，系统自动匹配对应的描述词。\n「自定义」模式支持编辑和保存自己的风格预设。',
         targetSelector: '.params-col .card:first-child',
         placement: 'left',
         highlight: true
     },
     {
         title: '高级参数',
-        content: '调整创意度、几何细节、纹理质量。\n数值越高效果越丰富，可以精细控制生成结果。',
+        content: '调整贴近草图程度、迭代步数（10-30步）、草图类型。\n可锁定随机种子确保结果可复现，或点击随机按钮每次生成不同效果。',
         targetSelector: '.params-col .card:nth-child(2)',
         placement: 'left',
         highlight: true
     },
     {
         title: '生成状态',
-        content: '实时查看草图处理、2D角色生成、3D模型重建的进度和状态，方便了解当前生成阶段。',
+        content: '实时查看生成进度：草图处理 → 2D角色生成 → 3D模型重建。\n进度条和状态指示让你清楚当前所处的阶段。',
         targetSelector: '.params-col .card:last-child',
         placement: 'left',
         highlight: true
     },
     {
-        title: '灵韵画卷',
-        content: 'AI 生成的 2D 角色图像会显示在这里。\n支持鼠标拖拽移动和按钮缩放，可下载保存。',
+        title: '2D 角色预览',
+        content: 'AI 每次生成 3 张角色变体，在下方缩略图展示。\n每 3 张为一组，批次序号清晰标识。\n点击缩略图切换预览，支持拖拽查看细节。',
         targetSelector: '.gallery-left .preview-card-full',
         placement: 'right',
         highlight: true
     },
     {
         title: '造物之形',
-        content: '3D 模型预览区域，支持鼠标拖拽旋转视角、滚轮缩放，可下载 3D 模型文件。',
+        content: '3D 模型预览区域。选中 2D 角色后自动重建 3D 网格。\n鼠标拖拽旋转视角，滚轮缩放。\n支持切换显示模式：纹理/线框/实体。',
         targetSelector: '.gallery-right .preview-card-full',
         placement: 'left',
         highlight: true
     },
     {
         title: '生成记录',
-        content: '点击顶部「生成记录」按钮或按 H 键，查看所有历史作品。\n支持按时间筛选、搜索、收藏和重命名。\n点击卡片可预览详情，确认后再加载到画布。',
+        content: '点击顶部「生成记录」按钮或按 H 键打开历史面板。\n同一草图的生成自动合并为一条记录，方便管理。\n支持按时间筛选、搜索、收藏和重命名。',
         targetSelector: '.history-btn',
         placement: 'bottom',
         highlight: true
     },
     {
         title: '个人账户',
-        content: '点击右上角头像登录/注册账户。\n在账户面板可查看生成次数、连续创作天数、常用风格统计和最近动态。\n支持编辑昵称、上传头像、修改密码。',
+        content: '点击右上角登录/注册账户。\n可查看生成次数、连续创作天数等统计信息。\n支持编辑昵称、上传头像、修改密码。',
         targetSelector: '.user-btn',
         placement: 'bottom',
         highlight: true
@@ -114,6 +114,7 @@ function calcPositions(tip, tooltipW, tooltipH) {
     const rect = target.getBoundingClientRect();
     const gap = 14;
 
+    // getBoundingClientRect 已包含父级 zoom 缩放，直接用于 position: fixed
     const highlight = {
         top: rect.top - 8,
         left: rect.left - 8,
@@ -125,16 +126,16 @@ function calcPositions(tip, tooltipW, tooltipH) {
 
     switch (tip.placement) {
         case 'right':
-            top = rect.top + (rect.height / 2) - (tooltipH / 2);
+            top = rect.top + rect.height / 2 - tooltipH / 2;
             left = rect.right + gap;
             break;
         case 'left':
-            top = rect.top + (rect.height / 2) - (tooltipH / 2);
+            top = rect.top + rect.height / 2 - tooltipH / 2;
             left = rect.left - tooltipW - gap;
             break;
         case 'bottom':
             top = rect.bottom + gap;
-            left = rect.left + (rect.width / 2) - (tooltipW / 2);
+            left = rect.left + rect.width / 2 - tooltipW / 2;
             break;
         default:
             top = rect.top;

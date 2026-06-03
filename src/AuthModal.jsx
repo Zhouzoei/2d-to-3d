@@ -27,6 +27,16 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
     const [verifyingCode, setVerifyingCode] = useState(false);
     
     const [toast, setToast] = useState({ show: false, message: '', isError: false });
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [resetStep, setResetStep] = useState(1);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetCode, setResetCode] = useState('');
+    const [resetNewPw, setResetNewPw] = useState('');
+    const [resetConfirmPw, setResetConfirmPw] = useState('');
+    const [resetCountdown, setResetCountdown] = useState(0);
+    const [sendingResetCode, setSendingResetCode] = useState(false);
+    const [verifyingResetCode, setVerifyingResetCode] = useState(false);
+    const [savingResetPw, setSavingResetPw] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState('');
     const [editAvatar, setEditAvatar] = useState(null);
@@ -36,7 +46,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const fileInputRef = useRef(null);
 
-    const { register, login, logout, currentUser, getUserStats, updateProfile, changePassword } = useUser();
+    const { login, logout, currentUser, getUserStats, updateProfile, changePassword } = useUser();
 
     useEffect(() => {
         let timer;
@@ -45,6 +55,14 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         }
         return () => clearTimeout(timer);
     }, [countdown]);
+
+    useEffect(() => {
+        let timer;
+        if (resetCountdown > 0) {
+            timer = setTimeout(() => setResetCountdown(resetCountdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [resetCountdown]);
 
     const showToast = (message, isError = false) => {
         setToast({ show: true, message, isError });
@@ -59,13 +77,107 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
             return;
         }
         const result = await login(loginEmail, loginPassword);
+        showToast(result.message, !result.success);
         if (result.success) {
-            showToast(result.message);
-            onClose();
-            resetForm();
-        } else {
-            showToast(result.message, true);
+            setTimeout(() => onClose(), 800);
         }
+    };
+
+    // 重置密码 Step 1：发送验证码
+    const handleSendResetCode = async () => {
+        if (!resetEmail) {
+            showToast('请输入邮箱', true);
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+            showToast('请输入有效的邮箱地址', true);
+            return;
+        }
+        setSendingResetCode(true);
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: resetEmail,
+                options: { shouldCreateUser: false }
+            });
+            if (error) {
+                if (error.message.includes('rate limit')) {
+                    showToast('发送太频繁，请等待1分钟后再试', true);
+                } else if (error.message.includes('not found') || error.message.includes('User')) {
+                    showToast('该邮箱未注册', true);
+                } else {
+                    showToast(error.message, true);
+                }
+                setSendingResetCode(false);
+                return;
+            }
+            showToast('验证码已发送到您的邮箱');
+            setResetStep(2);
+            setResetCountdown(60);
+        } catch (error) {
+            showToast('发送失败，请稍后重试', true);
+        }
+        setSendingResetCode(false);
+    };
+
+    // 重置密码 Step 2：验证码
+    const handleVerifyResetCode = async () => {
+        if (!resetCode) {
+            showToast('请输入验证码', true);
+            return;
+        }
+        setVerifyingResetCode(true);
+        try {
+            const { error } = await supabase.auth.verifyOtp({
+                email: resetEmail,
+                token: resetCode,
+                type: 'email'
+            });
+            if (error) {
+                showToast('验证码错误或已过期', true);
+                setVerifyingResetCode(false);
+                return;
+            }
+            showToast('验证成功！请设置新密码');
+            setResetStep(3);
+        } catch (error) {
+            showToast('验证失败，请重试', true);
+        }
+        setVerifyingResetCode(false);
+    };
+
+    // 重置密码 Step 3：设置新密码
+    const handleSaveResetPw = async () => {
+        if (!resetNewPw || !resetConfirmPw) {
+            showToast('请填写密码', true);
+            return;
+        }
+        if (resetNewPw.length < 6) {
+            showToast('密码至少需要 6 位', true);
+            return;
+        }
+        if (resetNewPw !== resetConfirmPw) {
+            showToast('两次输入的密码不一致', true);
+            return;
+        }
+        setSavingResetPw(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: resetNewPw });
+            if (error) {
+                showToast(error.message, true);
+                setSavingResetPw(false);
+                return;
+            }
+            showToast('密码已重置，请重新登录');
+            setShowForgotPassword(false);
+            setResetStep(1);
+            setResetEmail('');
+            setResetCode('');
+            setResetNewPw('');
+            setResetConfirmPw('');
+        } catch (error) {
+            showToast('重置失败，请稍后重试', true);
+        }
+        setSavingResetPw(false);
     };
 
     const handleSendCode = async () => {
@@ -117,7 +229,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
         setVerifyingCode(true);
         try {
-            const { data, error } = await supabase.auth.verifyOtp({
+            const { error } = await supabase.auth.verifyOtp({
                 email: regEmail,
                 token: verifyCode,
                 type: 'magiclink'
@@ -180,6 +292,13 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         setRegisterStep(1);
         setCountdown(0);
         setActiveTab('login');
+        setShowForgotPassword(false);
+        setResetStep(1);
+        setResetEmail('');
+        setResetCode('');
+        setResetNewPw('');
+        setResetConfirmPw('');
+        setResetCountdown(0);
     };
 
     const handleClose = () => {
@@ -452,7 +571,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                                                     )}
                                                 </div>
                                                 <div className="activity-info">
-                                                    <div className="activity-prompt">{item.prompt}</div>
+                                                    <div className="activity-prompt">{item.positivePrompt || item.prompt}</div>
                                                     <div className="activity-meta">
                                                         <span>{relativeTime(item.createdAt)}</span>
                                                         {item.has3D && <span className="activity-badge-3d">3D</span>}
@@ -515,7 +634,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                     </div>
                 </div>
 
-                {activeTab === 'login' ? (
+                {activeTab === 'login' && !showForgotPassword ? (
                     <div className="auth-form">
                         <div className="form-group">
                             <label>邮箱</label>
@@ -537,7 +656,85 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
+                        <div className="forgot-password-row">
+                            <button
+                                className="forgot-password-link"
+                                onClick={() => { setShowForgotPassword(true); setResetEmail(loginEmail); }}
+                                type="button"
+                            >忘记密码？</button>
+                        </div>
                         <button className="auth-btn" onClick={handleLogin}>登录</button>
+                    </div>
+                ) : activeTab === 'login' && showForgotPassword ? (
+                    <div className="auth-form">
+                        {resetStep === 1 && (
+                            <>
+                                <div className="form-group">
+                                    <label>重置密码</label>
+                                    <div className="forgot-desc">输入注册邮箱，我们将发送验证码</div>
+                                    <input
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && !sendingResetCode && handleSendResetCode()}
+                                    />
+                                </div>
+                                <button className="auth-btn" onClick={handleSendResetCode} disabled={sendingResetCode}>
+                                    {sendingResetCode ? '发送中...' : '发送验证码'}
+                                </button>
+                            </>
+                        )}
+                        {resetStep === 2 && (
+                            <>
+                                <div className="form-group">
+                                    <label>验证码已发送至 {resetEmail}</label>
+                                    <div className="forgot-desc">请在下方输入您收到的验证码</div>
+                                    <input
+                                        type="text"
+                                        placeholder="请输入验证码"
+                                        value={resetCode}
+                                        onChange={(e) => setResetCode(e.target.value)}
+                                        maxLength={10}
+                                        onKeyPress={(e) => e.key === 'Enter' && !verifyingResetCode && handleVerifyResetCode()}
+                                    />
+                                    {resetCountdown > 0 && <div className="forgot-desc" style={{ marginTop: 6 }}>{resetCountdown}秒后可重新发送</div>}
+                                </div>
+                                <button className="auth-btn" onClick={handleVerifyResetCode} disabled={verifyingResetCode}>
+                                    {verifyingResetCode ? '验证中...' : '验证'}
+                                </button>
+                            </>
+                        )}
+                        {resetStep === 3 && (
+                            <>
+                                <div className="form-group">
+                                    <label>设置新密码</label>
+                                    <div className="forgot-desc">请为您的账户设置一个新密码</div>
+                                    <input
+                                        type="password"
+                                        placeholder="新密码（至少6位）"
+                                        value={resetNewPw}
+                                        onChange={(e) => setResetNewPw(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <input
+                                        type="password"
+                                        placeholder="确认新密码"
+                                        value={resetConfirmPw}
+                                        onChange={(e) => setResetConfirmPw(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && !savingResetPw && handleSaveResetPw()}
+                                    />
+                                </div>
+                                <button className="auth-btn" onClick={handleSaveResetPw} disabled={savingResetPw}>
+                                    {savingResetPw ? '保存中...' : '重置密码'}
+                                </button>
+                            </>
+                        )}
+                        <button
+                            className="forgot-back-btn"
+                            onClick={() => { setShowForgotPassword(false); setResetStep(1); }}
+                        >← 返回登录</button>
                     </div>
                 ) : (
                     <div className="auth-form">

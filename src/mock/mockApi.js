@@ -106,10 +106,14 @@ export async function mockGenerate(prompt, style) {
     const delay = 800 + Math.random() * 1200;
     await new Promise(resolve => setTimeout(resolve, delay));
 
-    const base64 = generateMockImage(prompt, style);
+    const b64_1 = generateMockImage(prompt, style);
+    callCount++;
+    const b64_2 = generateMockImage(prompt, style);
+    callCount++;
+    const b64_3 = generateMockImage(prompt, style);
     callCount++;
 
-    return { image_base64: base64 };
+    return { images: [b64_1, b64_2, b64_3] };
 }
 
 export function resetMockCount() {
