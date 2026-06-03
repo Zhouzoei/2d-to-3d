@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useUser } from './UserContext';
+import { supabase } from './lib/supabase';
 import './AuthModal.css';
 
 const STYLE_LABELS = {
@@ -15,9 +16,16 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
     const [activeTab, setActiveTab] = useState('login');
     const [loginEmail, setLoginEmail] = useState('');
     const [loginPassword, setLoginPassword] = useState('');
-    const [regName, setRegName] = useState('');
+    
+    const [registerStep, setRegisterStep] = useState(1);
     const [regEmail, setRegEmail] = useState('');
+    const [verifyCode, setVerifyCode] = useState('');
+    const [regName, setRegName] = useState('');
     const [regPassword, setRegPassword] = useState('');
+    const [countdown, setCountdown] = useState(0);
+    const [sendingCode, setSendingCode] = useState(false);
+    const [verifyingCode, setVerifyingCode] = useState(false);
+    
     const [toast, setToast] = useState({ show: false, message: '', isError: false });
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState('');
@@ -30,19 +38,27 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
     const { register, login, logout, currentUser, getUserStats, updateProfile, changePassword } = useUser();
 
+    useEffect(() => {
+        let timer;
+        if (countdown > 0) {
+            timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [countdown]);
+
     const showToast = (message, isError = false) => {
         setToast({ show: true, message, isError });
         setTimeout(() => {
             setToast({ show: false, message: '', isError: false });
-        }, 2500);
+        }, 3000);
     };
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!loginEmail || !loginPassword) {
             showToast('请填写邮箱和密码', true);
             return;
         }
-        const result = login(loginEmail, loginPassword);
+        const result = await login(loginEmail, loginPassword);
         if (result.success) {
             showToast(result.message);
             onClose();
@@ -52,31 +68,117 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         }
     };
 
-    const handleRegister = () => {
-        if (!regName || !regEmail || !regPassword) {
-            showToast('请填写完整信息', true);
+    const handleSendCode = async () => {
+        if (!regEmail) {
+            showToast('请输入邮箱', true);
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
+            showToast('请输入有效的邮箱地址', true);
+            return;
+        }
+
+        setSendingCode(true);
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: regEmail,
+                options: {
+                    shouldCreateUser: true,
+                    emailRedirectTo: window.location.origin
+                }
+            });
+
+            if (error) {
+                if (error.message.includes('rate limit')) {
+                    showToast('发送太频繁，请等待1分钟后再试', true);
+                } else if (error.message.includes('already')) {
+                    showToast('该邮箱已注册，请直接登录', true);
+                } else {
+                    showToast(error.message, true);
+                }
+                setSendingCode(false);
+                return;
+            }
+
+            showToast('验证码已发送到您的邮箱');
+            setRegisterStep(2);
+            setCountdown(60);
+        } catch (error) {
+            showToast('发送失败，请稍后重试', true);
+        }
+        setSendingCode(false);
+    };
+
+    const handleVerifyCode = async () => {
+        if (!verifyCode) {
+            showToast('请输入验证码', true);
+            return;
+        }
+
+        setVerifyingCode(true);
+        try {
+            const { data, error } = await supabase.auth.verifyOtp({
+                email: regEmail,
+                token: verifyCode,
+                type: 'magiclink'
+            });
+
+            if (error) {
+                showToast('验证码错误或已过期', true);
+                setVerifyingCode(false);
+                return;
+            }
+
+            showToast('验证成功！请设置您的账户信息');
+            setRegisterStep(3);
+        } catch (error) {
+            showToast('验证失败，请重试', true);
+        }
+        setVerifyingCode(false);
+    };
+
+    const handleCompleteRegister = async () => {
+        if (!regName) {
+            showToast('请输入用户名', true);
+            return;
+        }
+        if (!regPassword) {
+            showToast('请设置密码', true);
             return;
         }
         if (regPassword.length < 6) {
             showToast('密码至少需要6位', true);
             return;
         }
-        const result = register(regName, regEmail, regPassword);
-        if (result.success) {
-            showToast(result.message);
+
+        try {
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: regPassword,
+                data: { name: regName }
+            });
+
+            if (updateError) {
+                showToast(updateError.message, true);
+                return;
+            }
+
+            showToast(`注册成功，欢迎 ${regName}！`);
             onClose();
             resetForm();
-        } else {
-            showToast(result.message, true);
+        } catch (error) {
+            showToast('注册失败，请稍后重试', true);
         }
     };
 
     const resetForm = () => {
         setLoginEmail('');
         setLoginPassword('');
-        setRegName('');
         setRegEmail('');
+        setVerifyCode('');
+        setRegName('');
         setRegPassword('');
+        setRegisterStep(1);
+        setCountdown(0);
         setActiveTab('login');
     };
 
@@ -112,12 +214,12 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         setConfirmPassword('');
     };
 
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         if (!editName.trim()) {
             showToast('昵称不能为空', true);
             return;
         }
-        const result = updateProfile(editName.trim(), editAvatar || undefined);
+        const result = await updateProfile(editName.trim(), editAvatar || undefined);
         if (result.success) {
             showToast(result.message);
             setIsEditing(false);
@@ -127,7 +229,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         }
     };
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
         if (!oldPassword) {
             showToast('请输入当前密码', true);
             return;
@@ -144,7 +246,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
             showToast('两次输入的新密码不一致', true);
             return;
         }
-        const result = changePassword(oldPassword, newPassword);
+        const result = await changePassword(oldPassword, newPassword);
         if (result.success) {
             showToast(result.message);
             setShowPasswordChange(false);
@@ -188,7 +290,6 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
     if (!isOpen) return null;
 
-    // --- 已登录：用户面板 ---
     if (currentUser) {
         const stats = getUserStats();
         const hasAvatar = stats.avatar || editAvatar;
@@ -366,10 +467,9 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
                             <div className="user-actions">
                                 <button className="edit-profile-btn" onClick={handleStartEdit}>编辑资料</button>
-                                <button className="logout-btn" onClick={() => {
-                                    logout();
+                                <button className="logout-btn" onClick={async () => {
+                                    await logout();
                                     handleClose();
-                                    window.location.reload();
                                 }}>退出登录</button>
                             </div>
                             <button className="restart-guide-btn" onClick={() => {
@@ -392,7 +492,6 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         );
     }
 
-    // --- 未登录：登录/注册 ---
     return (
         <div className="auth-modal-overlay" onClick={handleClose}>
             <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
@@ -404,13 +503,13 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                 <div className="auth-tabs">
                     <div
                         className={`auth-tab ${activeTab === 'login' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('login')}
+                        onClick={() => { setActiveTab('login'); setRegisterStep(1); }}
                     >
                         登录
                     </div>
                     <div
                         className={`auth-tab ${activeTab === 'register' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('register')}
+                        onClick={() => { setActiveTab('register'); setRegisterStep(1); }}
                     >
                         注册
                     </div>
@@ -442,35 +541,80 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                     </div>
                 ) : (
                     <div className="auth-form">
-                        <div className="form-group">
-                            <label>用户名</label>
-                            <input
-                                type="text"
-                                placeholder="用户名"
-                                value={regName}
-                                onChange={(e) => setRegName(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>邮箱</label>
-                            <input
-                                type="email"
-                                placeholder="your@email.com"
-                                value={regEmail}
-                                onChange={(e) => setRegEmail(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>密码</label>
-                            <input
-                                type="password"
-                                placeholder="至少6位"
-                                value={regPassword}
-                                onChange={(e) => setRegPassword(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleRegister()}
-                            />
-                        </div>
-                        <button className="auth-btn" onClick={handleRegister}>注册</button>
+                        {registerStep === 1 && (
+                            <>
+                                <div className="form-group">
+                                    <label>邮箱</label>
+                                    <input
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={regEmail}
+                                        onChange={(e) => setRegEmail(e.target.value)}
+                                    />
+                                </div>
+                                <button 
+                                    className="auth-btn" 
+                                    onClick={handleSendCode}
+                                    disabled={sendingCode}
+                                >
+                                    {sendingCode ? '发送中...' : '发送验证码'}
+                                </button>
+                            </>
+                        )}
+
+                        {registerStep === 2 && (
+                            <>
+                                <div className="form-group">
+                                    <label>验证码已发送至 {regEmail}</label>
+                                    <input
+                                        type="text"
+                                        placeholder="请输入验证码"
+                                        value={verifyCode}
+                                        onChange={(e) => setVerifyCode(e.target.value)}
+                                        maxLength={10}
+                                    />
+                                </div>
+                                <button 
+                                    className="auth-btn" 
+                                    onClick={handleVerifyCode}
+                                    disabled={verifyingCode}
+                                >
+                                    {verifyingCode ? '验证中...' : '验证'}
+                                </button>
+                                <button 
+                                    className="resend-btn"
+                                    onClick={handleSendCode}
+                                    disabled={countdown > 0 || sendingCode}
+                                >
+                                    {countdown > 0 ? `${countdown}秒后可重新发送` : '重新发送验证码'}
+                                </button>
+                            </>
+                        )}
+
+                        {registerStep === 3 && (
+                            <>
+                                <div className="form-group">
+                                    <label>用户名</label>
+                                    <input
+                                        type="text"
+                                        placeholder="请输入用户名"
+                                        value={regName}
+                                        onChange={(e) => setRegName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>设置密码</label>
+                                    <input
+                                        type="password"
+                                        placeholder="至少6位"
+                                        value={regPassword}
+                                        onChange={(e) => setRegPassword(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleCompleteRegister()}
+                                    />
+                                </div>
+                                <button className="auth-btn" onClick={handleCompleteRegister}>完成注册</button>
+                            </>
+                        )}
                     </div>
                 )}
 

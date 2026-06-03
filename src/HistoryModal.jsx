@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser } from './UserContext';
+import { generationService } from './lib/generationService';
 import './HistoryModal.css';
 
 function migrateOldRecord(record) {
@@ -61,26 +62,82 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const [previewRecord, setPreviewRecord] = useState(null);
     const [editingRecordId, setEditingRecordId] = useState(null);
     const [editName, setEditName] = useState('');
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const editInputRef = useRef(null);
     const clickTimerRef = useRef(null);
-    const { incrementFavCount } = useUser();
+    const lastLoadTimeRef = useRef(0);
+    const { incrementFavCount, currentUser } = useUser();
 
     useEffect(() => {
         if (isOpen) {
-            const stored = localStorage.getItem('generateHistory');
-            if (stored) {
-                const records = JSON.parse(stored);
-                const migrated = records.map(migrateOldRecord);
-                migrated.sort((a, b) => b.batchId - a.batchId);
-                setHistory(migrated);
-            } else {
-                setHistory([]);
-            }
             setSearchText('');
             setPreviewRecord(null);
             setEditingRecordId(null);
+            
+            const now = Date.now();
+            const timeSinceLastLoad = now - lastLoadTimeRef.current;
+            
+            if (timeSinceLastLoad < 3000 && history.length > 0) {
+                console.log('📦 使用缓存的历史记录');
+                return;
+            }
+            
+            const loadHistory = async () => {
+                setIsLoadingHistory(true);
+                try {
+                    if (currentUser?.id) {
+                        console.log('📥 从数据库加载历史记录...');
+                        const result = await generationService.getGenerations(currentUser.id, 50);
+                        if (result.success) {
+                            const records = result.data.map(dbRecord => ({
+                                id: dbRecord.id,
+                                batchId: dbRecord.batch_id,
+                                createdAt: dbRecord.created_at,
+                                updatedAt: dbRecord.updated_at,
+                                isFavorite: dbRecord.is_favorite,
+                                customName: dbRecord.custom_name || '',
+                                sketchData: dbRecord.sketch_url,
+                                variants: (dbRecord.variants || []).map(v => ({
+                                    fullImage: v.full_image,
+                                    thumbnail: v.thumbnail,
+                                    prompt: v.prompt,
+                                    style: v.style,
+                                    creativity: v.creativity,
+                                    geometryDetail: v.geometry_detail,
+                                    textureQuality: v.texture_quality,
+                                })),
+                                models: (dbRecord.models || []).map(m => ({
+                                    modelUrl: m.model_url,
+                                    modelThumbnail: m.model_thumbnail,
+                                    createdAt: m.created_at,
+                                })),
+                            }));
+                            records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                            setHistory(records);
+                            lastLoadTimeRef.current = now;
+                            console.log(`✅ 已加载 ${records.length} 条历史记录`);
+                        } else {
+                            console.error('❌ 加载历史记录失败:', result.error);
+                            setHistory([]);
+                        }
+                    } else {
+                        const stored = localStorage.getItem('generateHistory');
+                        if (stored) {
+                            const records = JSON.parse(stored);
+                            const migrated = records.map(migrateOldRecord);
+                            migrated.sort((a, b) => b.batchId - a.batchId);
+                            setHistory(migrated);
+                        } else {
+                            setHistory([]);
+                        }
+                    }
+                } finally {
+                    setIsLoadingHistory(false);
+                }
+            };
+            loadHistory();
         }
-    }, [isOpen]);
+    }, [isOpen, currentUser]);
 
     useEffect(() => {
         if (editingRecordId && editInputRef.current) {
@@ -114,8 +171,25 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         localStorage.setItem('generateHistory', JSON.stringify(newHistory));
     };
 
-    const handleDelete = (batchId, e) => {
+    const handleDelete = async (batchId, e) => {
         e.stopPropagation();
+        
+        const recordToDelete = history.find(record => record.batchId === batchId);
+        
+        if (recordToDelete?.id && currentUser?.id) {
+            try {
+                console.log('🗑️ 从数据库删除记录:', recordToDelete.id);
+                const result = await generationService.deleteGeneration(recordToDelete.id);
+                if (result.success) {
+                    console.log('✅ 已从数据库删除');
+                } else {
+                    console.error('❌ 从数据库删除失败:', result.error);
+                }
+            } catch (error) {
+                console.error('删除操作失败:', error);
+            }
+        }
+        
         const newHistory = history.filter(record => record.batchId !== batchId);
         setHistory(newHistory);
         persistHistory(newHistory);
@@ -160,7 +234,22 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         }
     };
 
-    const confirmClearAll = () => {
+    const confirmClearAll = async () => {
+        if (currentUser?.id && history.length > 0) {
+            try {
+                console.log('🗑️ 清空所有数据库记录...');
+                const deletePromises = history
+                    .filter(record => record.id)
+                    .map(record => generationService.deleteGeneration(record.id));
+                
+                const results = await Promise.all(deletePromises);
+                const successCount = results.filter(r => r.success).length;
+                console.log(`✅ 已从数据库删除 ${successCount} 条记录`);
+            } catch (error) {
+                console.error('清空数据库记录失败:', error);
+            }
+        }
+        
         localStorage.removeItem('generateHistory');
         setHistory([]);
         setShowClearConfirm(false);
@@ -257,7 +346,12 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                     </div>
 
                     <div className="history-gallery">
-                    {displayHistory.length === 0 ? (
+                    {isLoadingHistory ? (
+                        <div className="history-loading">
+                            <div className="history-loading-spinner"></div>
+                            <p>加载中...</p>
+                        </div>
+                    ) : displayHistory.length === 0 ? (
                         <div className="history-empty">
                             <span>📭</span>
                             <p>{searchText ? '未找到匹配记录' : '暂无生成记录'}</p>

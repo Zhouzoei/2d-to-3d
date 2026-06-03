@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { generationService } from '../lib/generationService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 const USE_MOCK = localStorage.getItem('mock') === 'true';
+const USE_DATABASE = true;
 
 export default function useGeneration({
     sketchData,
@@ -36,6 +38,7 @@ export default function useGeneration({
     const saveToHistoryRef = useRef(null);
     const continueGenerateRef = useRef(null);
     const batchIdRef = useRef(null);
+    const generationIdRef = useRef(null);
     const abortControllerRef = useRef(null);
     const cancelRequestedRef = useRef(false);
 
@@ -77,7 +80,7 @@ export default function useGeneration({
         return await response.json();
     }, [getStylePrompt]);
 
-    continueGenerateRef.current = useCallback(async (finalSketchData) => {
+    continueGenerateRef.current = useCallback(async (finalSketchData, originalSketchData) => {
         const controller = new AbortController();
         abortControllerRef.current = controller;
         cancelRequestedRef.current = false;
@@ -95,7 +98,7 @@ export default function useGeneration({
                 setGeneratedImages([imageUrl]);
                 setSelectedVariantIndex(0);
                 const { prompt: p, selectedStyle: s, creativity: c, geometryDetail: gd, textureQuality: tq } = paramsRef.current;
-                saveToHistoryRef.current(imageUrl, p, s, c, gd, tq);
+                saveToHistoryRef.current(imageUrl, p, s, c, gd, tq, originalSketchData || finalSketchData);
                 setGenerationStatus({ sketch: 'done', character: 'done', model: 'pending' });
                 setProgress(100);
                 setTimeout(() => setProgress(0), 2000);
@@ -115,17 +118,18 @@ export default function useGeneration({
         }
     }, [callGenerateAPI, currentUser, incrementGenCount]);
 
-    const handleCropConfirm = useCallback(async (croppedImageData) => {
+    const handleCropConfirm = useCallback(async (croppedImageData, originalSketchData) => {
         onCloseCropModal();
         onUpdateSketchData(croppedImageData);
         setGeneratedImages([]);
         setSelectedVariantIndex(-1);
         setConfirmedImage(null);
         batchIdRef.current = Date.now();
+        generationIdRef.current = null;
         if (USE_MOCK) {
             import('../mock/mockApi').then(m => { m.resetMockCount(); m.resetModelCount(); });
         }
-        await continueGenerateRef.current(croppedImageData);
+        await continueGenerateRef.current(croppedImageData, originalSketchData);
     }, [onCloseCropModal, onUpdateSketchData]);
 
     const handleRegenerate = useCallback(async () => {
@@ -149,7 +153,7 @@ export default function useGeneration({
                 setSelectedVariantIndex(generatedImages.length);
                 setConfirmedImage(null);
                 const { prompt: p, selectedStyle: s, creativity: c, geometryDetail: gd, textureQuality: tq } = paramsRef.current;
-                saveToHistoryRef.current(imageUrl, p, s, c, gd, tq);
+                saveToHistoryRef.current(imageUrl, p, s, c, gd, tq, currentSketchData);
                 setGenerationStatus({ sketch: 'done', character: 'done', model: 'pending' });
                 setProgress(100);
                 setTimeout(() => setProgress(0), 2000);
@@ -199,7 +203,7 @@ export default function useGeneration({
         link.click();
     }, [selectedVariantIndex, generatedImages]);
 
-    saveToHistoryRef.current = useCallback((generatedImageUrl, prompt, style, creativity, geometryDetail, textureQuality) => {
+    saveToHistoryRef.current = useCallback((generatedImageUrl, prompt, style, creativity, geometryDetail, textureQuality, sketchData) => {
         const createThumbnail = (dataUrl, callback) => {
             const img = new Image();
             img.onload = () => {
@@ -216,24 +220,84 @@ export default function useGeneration({
             };
             img.src = dataUrl;
         };
-        createThumbnail(generatedImageUrl, (thumbnail) => {
+        createThumbnail(generatedImageUrl, async (thumbnail) => {
             const currentBatchId = batchIdRef.current || Date.now();
             batchIdRef.current = currentBatchId;
 
-            const variant = { fullImage: generatedImageUrl, thumbnail, prompt, style, creativity, geometryDetail, textureQuality };
+            const variant = { 
+                index: 0,
+                full_image: generatedImageUrl, 
+                thumbnail, 
+                prompt, 
+                style, 
+                creativity, 
+                geometry_detail: geometryDetail, 
+                texture_quality: textureQuality,
+                created_at: new Date().toISOString()
+            };
+
+            if (USE_DATABASE && currentUser?.id) {
+                try {
+                    if (!generationIdRef.current) {
+                        const result = await generationService.saveGeneration(currentUser.id, {
+                            batchId: currentBatchId,
+                            prompt,
+                            style,
+                            creativity,
+                            geometryDetail,
+                            textureQuality,
+                            sketchUrl: sketchData,
+                            variants: [variant]
+                        });
+                        if (result.success) {
+                            generationIdRef.current = result.data.id;
+                            console.log('✅ 已保存到数据库:', result.data.id);
+                        } else {
+                            console.error('❌ 保存到数据库失败:', result.error);
+                        }
+                    } else {
+                        const result = await generationService.addVariant(generationIdRef.current, variant);
+                        if (result.success) {
+                            console.log('✅ 已添加变体到数据库');
+                        } else {
+                            console.error('❌ 添加变体失败:', result.error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('数据库操作失败:', error);
+                }
+            }
+
             const stored = localStorage.getItem('generateHistory');
             let history = stored ? JSON.parse(stored) : [];
 
             const existingIndex = history.findIndex(r => r.batchId === currentBatchId);
             if (existingIndex !== -1) {
-                history[existingIndex].variants.push(variant);
+                history[existingIndex].variants.push({
+                    fullImage: generatedImageUrl,
+                    thumbnail,
+                    prompt,
+                    style,
+                    creativity,
+                    geometryDetail,
+                    textureQuality
+                });
                 history[existingIndex].updatedAt = new Date().toLocaleString();
             } else {
                 const newBatch = {
                     batchId: currentBatchId,
                     createdAt: new Date().toLocaleString(),
                     isFavorite: false,
-                    variants: [variant],
+                    sketchData: sketchData,
+                    variants: [{
+                        fullImage: generatedImageUrl,
+                        thumbnail,
+                        prompt,
+                        style,
+                        creativity,
+                        geometryDetail,
+                        textureQuality
+                    }],
                     models: [],
                 };
                 history.unshift(newBatch);
@@ -255,11 +319,28 @@ export default function useGeneration({
                 }
             }
         });
-    }, []);
+    }, [currentUser]);
 
-    const updateHistoryWith3D = useCallback((modelUrl) => {
+    const updateHistoryWith3D = useCallback(async (modelUrl) => {
         const currentBatchId = batchIdRef.current;
         if (!currentBatchId) return;
+
+        if (USE_DATABASE && currentUser?.id && generationIdRef.current) {
+            try {
+                const result = await generationService.addModel(generationIdRef.current, {
+                    modelUrl,
+                    modelThumbnail: modelUrl
+                });
+                if (result.success) {
+                    console.log('✅ 已保存3D模型到数据库');
+                } else {
+                    console.error('❌ 保存3D模型失败:', result.error);
+                }
+            } catch (error) {
+                console.error('数据库操作失败:', error);
+            }
+        }
+
         const stored = localStorage.getItem('generateHistory');
         if (!stored) return;
         try {
@@ -276,22 +357,28 @@ export default function useGeneration({
                 localStorage.setItem('generateHistory', JSON.stringify(history));
             }
         } catch (e) {}
-    }, []);
+    }, [currentUser]);
 
     const handleLoadRecord = useCallback((batchRecord) => {
+        if (batchRecord.sketchData || batchRecord.sketch_url) {
+            const sketchData = batchRecord.sketchData || batchRecord.sketch_url;
+            onUpdateSketchData(sketchData);
+            console.log('✅ 已加载草图');
+        }
+
         if (batchRecord.variants && batchRecord.variants.length > 0) {
-            const images = batchRecord.variants.map(v => v.fullImage);
+            const images = batchRecord.variants.map(v => v.fullImage || v.full_image);
             setGeneratedImages(images);
             setSelectedVariantIndex(0);
-            setConfirmedImage(batchRecord.variants[0].fullImage);
+            setConfirmedImage(batchRecord.variants[0].fullImage || batchRecord.variants[0].full_image);
 
             const first = batchRecord.variants[0];
             onUpdateParams({
                 prompt: first.prompt,
                 selectedStyle: first.style,
                 creativity: first.creativity,
-                geometryDetail: first.geometryDetail,
-                textureQuality: first.textureQuality,
+                geometryDetail: first.geometryDetail || first.geometry_detail,
+                textureQuality: first.textureQuality || first.texture_quality,
             });
         }
 
@@ -299,7 +386,7 @@ export default function useGeneration({
             if (batchRecord.models && batchRecord.models.length > 0) {
                 const models = batchRecord.models.map((m, i) => ({
                     id: m.createdAt ? Date.now() + i : Date.now() + i,
-                    url: m.modelUrl,
+                    url: m.modelUrl || m.model_url,
                     name: `3D 模型 ${i + 1}`,
                     createdAt: m.createdAt || batchRecord.createdAt,
                 }));
@@ -310,7 +397,7 @@ export default function useGeneration({
         }
 
         batchIdRef.current = Date.now();
-    }, [onUpdateParams, onLoadExistingModels]);
+    }, [onUpdateParams, onLoadExistingModels, onUpdateSketchData]);
 
     const handleDeleteVariant = useCallback((index) => {
         setGeneratedImages(prev => prev.filter((_, i) => i !== index));

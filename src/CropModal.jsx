@@ -364,7 +364,7 @@ const CropModal = ({ isOpen, onClose, sketchData, onConfirm }) => {
             0, 0, cropRect.w, cropRect.h
         );
         const croppedImageData = cropCanvas.toDataURL('image/png');
-        onConfirm(croppedImageData);
+        onConfirm(croppedImageData, sketchData);
     };
 
     if (!isOpen) return null;

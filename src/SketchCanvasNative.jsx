@@ -12,7 +12,7 @@ function saveRecentColors(colors) {
     localStorage.setItem('recentColors', JSON.stringify(colors));
 }
 
-const SketchCanvasNative = ({ onSketchChange }) => {
+const SketchCanvasNative = ({ onSketchChange, sketchDataToLoad }) => {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
     const containerRef = useRef(null);
@@ -38,6 +38,7 @@ const SketchCanvasNative = ({ onSketchChange }) => {
     const prevCanvasSizeRef = useRef({ width: 500, height: 500 });
     const canvasContentRef = useRef(null);
     const oldSizeForRestoreRef = useRef({ width: 500, height: 500 });
+    const lastLoadedSketchRef = useRef(null);
 
     useEffect(() => {
         historyRef.current = history;
@@ -46,6 +47,33 @@ const SketchCanvasNative = ({ onSketchChange }) => {
 
     useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
     useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
+
+    useEffect(() => {
+        if (sketchDataToLoad && sketchDataToLoad !== lastLoadedSketchRef.current && isInitializedRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = ctxRef.current;
+            if (!canvas || !ctx) return;
+
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const x = (canvas.width - img.width * scale) / 2;
+                const y = (canvas.height - img.height * scale) / 2;
+                
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                
+                const imageData = canvas.toDataURL();
+                setHistory([imageData]);
+                setHistoryIndex(0);
+                lastLoadedSketchRef.current = sketchDataToLoad;
+                
+                console.log('✅ 草图已加载到画布');
+            };
+            img.src = sketchDataToLoad;
+        }
+    }, [sketchDataToLoad]);
 
     const resizeCanvas = useCallback(() => {
         const container = containerRef.current;

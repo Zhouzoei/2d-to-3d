@@ -565,6 +565,31 @@
     color: #0A2A33;
 }
 
+.resend-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2C5F6B;
+    background: transparent;
+    border: 1px solid rgba(44, 138, 154, 0.3);
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resend-btn:hover:not(:disabled) {
+    background: rgba(44, 138, 154, 0.08);
+    border-color: rgba(44, 138, 154, 0.6);
+    color: #0A2A33;
+}
+
+.resend-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* 提示消息 */
 .toast-message {
     position: fixed;

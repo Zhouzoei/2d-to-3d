@@ -151,7 +151,10 @@ const AppContent = () => {
                                 </div>
                                 <div className="card-content sketch-card-content">
                                     <div className="sketch-area-wrapper">
-                                        <SketchCanvasNative onSketchChange={handleSketchChange} />
+                                        <SketchCanvasNative 
+                                            onSketchChange={handleSketchChange}
+                                            sketchDataToLoad={sketchData}
+                                        />
                                     </div>
                                     <div className="prompt-wrapper">
                                         <TextInput value={prompt} onChange={setPrompt} selectedStyle={selectedStyle} getStyleLabel={getStyleLabel} />

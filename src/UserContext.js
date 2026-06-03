@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from './lib/supabase';
 
 const UserContext = createContext();
 
@@ -16,138 +17,184 @@ function getYesterdayStr(today) {
 
 export const UserProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
-    const [users, setUsers] = useState([]);
     const [userStats, setUserStats] = useState({});
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUsers = localStorage.getItem('users');
-        const storedCurrentUser = localStorage.getItem('currentUser');
         const storedUserStats = localStorage.getItem('userStats');
-
-        if (storedUsers) setUsers(JSON.parse(storedUsers));
-        if (storedCurrentUser) setCurrentUser(JSON.parse(storedCurrentUser));
         if (storedUserStats) setUserStats(JSON.parse(storedUserStats));
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (session && session.user) {
+                    const user = {
+                        id: session.user.id,
+                        email: session.user.email,
+                        name: session.user.user_metadata?.name || session.user.email.split('@')[0],
+                        avatar: session.user.user_metadata?.avatar
+                    };
+                    setCurrentUser(user);
+                    
+                    if (event === 'SIGNED_IN') {
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                    }
+                } else {
+                    setCurrentUser(null);
+                    localStorage.removeItem('currentUser');
+                }
+                setLoading(false);
+            }
+        );
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) {
+                const user = {
+                    id: session.user.id,
+                    email: session.user.email,
+                    name: session.user.user_metadata?.name || session.user.email.split('@')[0],
+                    avatar: session.user.user_metadata?.avatar
+                };
+                setCurrentUser(user);
+            }
+            setLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
-
-    const saveUsers = (newUsers) => {
-        setUsers(newUsers);
-        localStorage.setItem('users', JSON.stringify(newUsers));
-    };
-
-    const saveCurrentUser = (user) => {
-        setCurrentUser(user);
-        if (user) {
-            localStorage.setItem('currentUser', JSON.stringify(user));
-        } else {
-            localStorage.removeItem('currentUser');
-        }
-    };
 
     const saveUserStats = (stats) => {
         setUserStats(stats);
         localStorage.setItem('userStats', JSON.stringify(stats));
     };
 
-    const hashPassword = (password) => {
-        let hash = 0;
-        for (let i = 0; i < password.length; i++) {
-            const char = password.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return 'h_' + Math.abs(hash).toString(36);
-    };
+    const register = async (name, email, password) => {
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { name }
+                }
+            });
 
-    const register = (name, email, password) => {
-        if (users.find(u => u.email === email)) {
-            return { success: false, message: '该邮箱已注册' };
-        }
-
-        if (password.length < 6) {
-            return { success: false, message: '密码至少需要6位' };
-        }
-
-        const newUser = { name, email, passwordHash: hashPassword(password) };
-        const newUsers = [...users, newUser];
-        saveUsers(newUsers);
-
-        const loginUser = { name, email };
-        saveCurrentUser(loginUser);
-
-        const newStats = {
-            ...userStats,
-            [email]: { genCount: 0, favCount: 0, streak: 0, lastActiveDate: null, avatar: null }
-        };
-        saveUserStats(newStats);
-
-        return { success: true, message: `注册成功，欢迎 ${name}！` };
-    };
-
-    const login = (email, password) => {
-        const hashedInput = hashPassword(password);
-        const user = users.find(u => u.email === email && u.passwordHash === hashedInput);
-        if (user) {
-            const loginUser = { name: user.name, email: user.email, avatar: userStats[email]?.avatar };
-            saveCurrentUser(loginUser);
-            return { success: true, message: `欢迎回来，${user.name || user.email.split('@')[0]}！` };
-        }
-        return { success: false, message: '邮箱或密码错误' };
-    };
-
-    const logout = () => {
-        saveCurrentUser(null);
-        return { success: true, message: '已退出登录' };
-    };
-
-    const updateProfile = (name, avatar) => {
-        if (!currentUser) return { success: false, message: '未登录' };
-        const email = currentUser.email;
-
-        const newUsers = users.map(u => {
-            if (u.email === email) {
-                return { ...u, name };
+            if (error) {
+                if (error.message.includes('already registered')) {
+                    return { success: false, message: '该邮箱已注册' };
+                }
+                return { success: false, message: error.message };
             }
-            return u;
-        });
-        saveUsers(newUsers);
 
-        const updatedUser = { ...currentUser, name, avatar };
-        saveCurrentUser(updatedUser);
+            if (data.user && !data.session) {
+                return { success: true, message: '验证邮件已发送，请查收邮箱并点击验证链接' };
+            }
 
-        const currentStats = userStats[email] || { genCount: 0, favCount: 0, streak: 0, lastActiveDate: null };
-        const newStats = {
-            ...userStats,
-            [email]: { ...currentStats, avatar }
-        };
-        saveUserStats(newStats);
-
-        return { success: true, message: '资料已更新' };
+            return { success: true, message: `注册成功，欢迎 ${name}！` };
+        } catch (error) {
+            return { success: false, message: '注册失败，请稍后重试' };
+        }
     };
 
-    const changePassword = (oldPassword, newPassword) => {
-        if (!currentUser) return { success: false, message: '未登录' };
-        const email = currentUser.email;
-        const user = users.find(u => u.email === email);
+    const login = async (email, password) => {
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
 
-        if (!user) return { success: false, message: '用户不存在' };
-
-        if (user.passwordHash !== hashPassword(oldPassword)) {
-            return { success: false, message: '当前密码错误' };
-        }
-
-        if (newPassword.length < 6) {
-            return { success: false, message: '新密码至少需要6位' };
-        }
-
-        const newUsers = users.map(u => {
-            if (u.email === email) {
-                return { ...u, passwordHash: hashPassword(newPassword) };
+            if (error) {
+                if (error.message.includes('Invalid login credentials')) {
+                    return { success: false, message: '邮箱或密码错误' };
+                }
+                if (error.message.includes('Email not confirmed')) {
+                    return { success: false, message: '请先验证邮箱' };
+                }
+                return { success: false, message: error.message };
             }
-            return u;
-        });
-        saveUsers(newUsers);
 
-        return { success: true, message: '密码已修改' };
+            if (data.user) {
+                const name = data.user.user_metadata?.name || email.split('@')[0];
+                return { success: true, message: `欢迎回来，${name}！` };
+            }
+
+            return { success: false, message: '登录失败' };
+        } catch (error) {
+            return { success: false, message: '登录失败，请稍后重试' };
+        }
+    };
+
+    const logout = async () => {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                return { success: false, message: error.message };
+            }
+            setCurrentUser(null);
+            localStorage.removeItem('currentUser');
+            return { success: true, message: '已退出登录' };
+        } catch (error) {
+            return { success: false, message: '退出失败，请稍后重试' };
+        }
+    };
+
+    const updateProfile = async (name, avatar) => {
+        if (!currentUser) return { success: false, message: '未登录' };
+
+        try {
+            const { data, error } = await supabase.auth.updateUser({
+                data: { name, avatar }
+            });
+
+            if (error) {
+                return { success: false, message: error.message };
+            }
+
+            const updatedUser = { ...currentUser, name, avatar };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+            const email = currentUser.email;
+            const currentStats = userStats[email] || { genCount: 0, favCount: 0, streak: 0, lastActiveDate: null };
+            const newStats = {
+                ...userStats,
+                [email]: { ...currentStats, avatar }
+            };
+            saveUserStats(newStats);
+
+            return { success: true, message: '资料已更新' };
+        } catch (error) {
+            return { success: false, message: '更新失败，请稍后重试' };
+        }
+    };
+
+    const changePassword = async (oldPassword, newPassword) => {
+        if (!currentUser) return { success: false, message: '未登录' };
+
+        try {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: currentUser.email,
+                password: oldPassword
+            });
+
+            if (signInError) {
+                return { success: false, message: '当前密码错误' };
+            }
+
+            if (newPassword.length < 6) {
+                return { success: false, message: '新密码至少需要6位' };
+            }
+
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) {
+                return { success: false, message: error.message };
+            }
+
+            return { success: true, message: '密码已修改' };
+        } catch (error) {
+            return { success: false, message: '修改失败，请稍后重试' };
+        }
     };
 
     const incrementGenCount = () => {
@@ -247,8 +294,8 @@ export const UserProvider = ({ children }) => {
     return (
         <UserContext.Provider value={{
             currentUser,
-            users,
             userStats,
+            loading,
             register,
             login,
             logout,
