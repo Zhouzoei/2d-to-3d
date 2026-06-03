@@ -27,6 +27,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
     const [verifyingCode, setVerifyingCode] = useState(false);
     
     const [toast, setToast] = useState({ show: false, message: '', isError: false });
+    const [pendingFlow, setPendingFlow] = useState(null); // 'register' | 'reset' | null
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [resetStep, setResetStep] = useState(1);
     const [resetEmail, setResetEmail] = useState('');
@@ -94,6 +95,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
             return;
         }
         setSendingResetCode(true);
+        setPendingFlow('reset');
         try {
             const { error } = await supabase.auth.signInWithOtp({
                 email: resetEmail,
@@ -108,6 +110,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                     showToast(error.message, true);
                 }
                 setSendingResetCode(false);
+                setPendingFlow(null);
                 return;
             }
             showToast('验证码已发送到您的邮箱');
@@ -115,6 +118,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
             setResetCountdown(60);
         } catch (error) {
             showToast('发送失败，请稍后重试', true);
+            setPendingFlow(null);
         }
         setSendingResetCode(false);
     };
@@ -168,12 +172,15 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                 return;
             }
             showToast('密码已重置，请重新登录');
+            // 验证码登录后，登出让用户用新密码登录
+            await supabase.auth.signOut();
             setShowForgotPassword(false);
             setResetStep(1);
             setResetEmail('');
             setResetCode('');
             setResetNewPw('');
             setResetConfirmPw('');
+            setPendingFlow(null);
         } catch (error) {
             showToast('重置失败，请稍后重试', true);
         }
@@ -191,6 +198,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         }
 
         setSendingCode(true);
+        setPendingFlow('register');
         try {
             const { error } = await supabase.auth.signInWithOtp({
                 email: regEmail,
@@ -209,6 +217,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                     showToast(error.message, true);
                 }
                 setSendingCode(false);
+                setPendingFlow(null);
                 return;
             }
 
@@ -217,6 +226,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
             setCountdown(60);
         } catch (error) {
             showToast('发送失败，请稍后重试', true);
+            setPendingFlow(null);
         }
         setSendingCode(false);
     };
@@ -271,14 +281,16 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
             if (updateError) {
                 showToast(updateError.message, true);
+                setPendingFlow(null);
                 return;
             }
 
             showToast(`注册成功，欢迎 ${regName}！`);
-            onClose();
             resetForm();
+            onClose();
         } catch (error) {
             showToast('注册失败，请稍后重试', true);
+            setPendingFlow(null);
         }
     };
 
@@ -292,6 +304,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
         setRegisterStep(1);
         setCountdown(0);
         setActiveTab('login');
+        setPendingFlow(null);
         setShowForgotPassword(false);
         setResetStep(1);
         setResetEmail('');
@@ -409,7 +422,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
 
     if (!isOpen) return null;
 
-    if (currentUser) {
+    if (currentUser && !pendingFlow) {
         const stats = getUserStats();
         const hasAvatar = stats.avatar || editAvatar;
         const avatarUrl = editAvatar || stats.avatar;
@@ -733,7 +746,7 @@ const AuthModal = ({ isOpen, onClose, setShowWelcome, setShowOnboarding }) => {
                         )}
                         <button
                             className="forgot-back-btn"
-                            onClick={() => { setShowForgotPassword(false); setResetStep(1); }}
+                            onClick={() => { setShowForgotPassword(false); setResetStep(1); setPendingFlow(null); }}
                         >← 返回登录</button>
                     </div>
                 ) : (

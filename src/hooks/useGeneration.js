@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { generationService } from '../lib/generationService';
+import { getHistoryKey } from '../lib/storage';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 const USE_MOCK = localStorage.getItem('mock') === 'true';
@@ -119,7 +120,7 @@ export default function useGeneration({
                 sketchType
             }));
 
-            // 数据库
+            // 数据库 — 如有已有 generationId 则追加变体，否则新建
             if (USE_DATABASE && currentUser?.id) {
                 const variantsForDb = allVariants.map(v => ({
                     full_image: v.fullImage,
@@ -133,46 +134,83 @@ export default function useGeneration({
                     seed,
                     created_at: new Date().toISOString()
                 }));
-                generationService.saveGeneration(currentUser.id, {
-                    batchId: capturedBatchId,
-                    positivePrompt,
-                    negativePrompt,
-                    style,
-                    adherenceToSketch,
-                    steps,
-                    sketchType,
-                    seed,
-                    sketchUrl: sketchData,
-                    variants: variantsForDb
-                }).then(result => {
-                    if (result.success) {
-                        generationIdRef.current = result.data.id;
-                        console.log('✅ 已保存到数据库:', result.data.id, `(${allVariants.length} 张)`);
-                    } else {
-                        console.error('❌ 保存到数据库失败:', result.error);
-                    }
-                }).catch(error => {
-                    console.error('数据库操作失败:', error);
-                });
+
+                if (generationIdRef.current) {
+                    // 已有记录 → 批量追加变体（使用 addVariants 避免竞态条件）
+                    generationService.addVariants(generationIdRef.current, variantsForDb).then(result => {
+                        if (result.success) {
+                            console.log(`✅ 已追加 ${allVariants.length} 张到数据库记录`);
+                        } else {
+                            console.error('❌ 追加到数据库失败:', result.error);
+                        }
+                    }).catch(error => {
+                        console.error('数据库操作失败:', error);
+                    });
+                } else {
+                    generationService.saveGeneration(currentUser.id, {
+                        batchId: capturedBatchId,
+                        positivePrompt,
+                        negativePrompt,
+                        style,
+                        adherenceToSketch,
+                        steps,
+                        sketchType,
+                        seed,
+                        sketchUrl: sketchData,
+                        variants: variantsForDb
+                    }).then(result => {
+                        if (result.success) {
+                            generationIdRef.current = result.data.id;
+                            console.log('✅ 已保存到数据库:', result.data.id, `(${allVariants.length} 张)`);
+                        } else {
+                            console.error('❌ 保存到数据库失败:', result.error);
+                        }
+                    }).catch(error => {
+                        console.error('数据库操作失败:', error);
+                    });
+                }
             }
 
-            // localStorage — 先移除同 batchId 的旧记录，再按 sketchData 合并
-            const stored = localStorage.getItem('generateHistory');
+            // localStorage — 先按 batchId 匹配，再按 sketchData 匹配，合并变体
+            const stored = localStorage.getItem(getHistoryKey());
             let history = stored ? JSON.parse(stored) : [];
-            history = history.filter(r => r.batchId !== capturedBatchId);
 
-            let matchIndex = -1;
-            if (sketchData) {
+            console.log('📝 saveBatchToHistory 开始', {
+                allVariantsCount: allVariants.length,
+                batchIdRef: batchIdRef.current,
+                capturedBatchId,
+                capturedBatchIdType: typeof capturedBatchId,
+                historyCount: history.length,
+                historyBatchIds: history.map(r => ({ bid: r.batchId, type: typeof r.batchId, vcount: r.variants.length })),
+            });
+
+            // 统一转字符串比较，避免 number vs string 类型不匹配导致找不到记录
+            const capturedBatchIdStr = String(capturedBatchId);
+            let matchIndex = history.findIndex(r => String(r.batchId) === capturedBatchIdStr);
+
+            // 没找到 batchId 匹配时，尝试按 sketchData 匹配（同一草图归为同一条记录）
+            if (matchIndex === -1 && sketchData) {
                 matchIndex = history.findIndex(r => r.sketchData === sketchData);
             }
 
+            console.log('📝 saveBatchToHistory 匹配结果', { matchIndex, capturedBatchIdStr });
+
             if (matchIndex !== -1) {
+                console.log('📝 合并到已有记录', { beforeCount: history[matchIndex].variants.length });
+                // 合并到已有记录
                 for (const v of allVariants) {
                     const exists = history[matchIndex].variants.some(e => e.fullImage === v.fullImage);
                     if (!exists) history[matchIndex].variants.push(v);
                 }
                 history[matchIndex].updatedAt = new Date().toLocaleString();
+                // 确保 batchId 更新为最新值
+                history[matchIndex].batchId = capturedBatchId;
+                // 清理与本记录 batchId 相同的其他重复记录（修复历史遗留的类型不一致导致的重复）
+                const beforeFilter = history.length;
+                history = history.filter((r, i) => i === matchIndex || String(r.batchId) !== capturedBatchIdStr);
+                console.log('📝 清理重复记录', { beforeFilter, afterFilter: history.length, finalCount: history[matchIndex]?.variants?.length });
             } else {
+                console.log('📝 创建新记录', { newBatchId: capturedBatchId });
                 history.unshift({
                     batchId: capturedBatchId,
                     createdAt: new Date().toLocaleString(),
@@ -185,12 +223,12 @@ export default function useGeneration({
 
             if (history.length > 50) history = history.slice(0, 50);
             try {
-                localStorage.setItem('generateHistory', JSON.stringify(history));
+                localStorage.setItem(getHistoryKey(), JSON.stringify(history));
             } catch (e) {
                 console.warn('存储空间不足，尝试清理旧记录后重试');
                 while (history.length > 1) {
                     history.pop();
-                    try { localStorage.setItem('generateHistory', JSON.stringify(history)); break; }
+                    try { localStorage.setItem(getHistoryKey(), JSON.stringify(history)); break; }
                     catch (inner) { continue; }
                 }
             }
@@ -252,7 +290,11 @@ export default function useGeneration({
         setGeneratedImages([]);
         setSelectedVariantIndex(-1);
         setConfirmedImage(null);
-        batchIdRef.current = Date.now();
+        // 如果是同一草图（从历史记录加载后重新生成），保持 batchId 以合并到同一条记录
+        // 如果是新草图（originalSketchData 不同），则创建新 batchId
+        if (originalSketchRef.current && originalSketchData !== originalSketchRef.current) {
+            batchIdRef.current = Date.now();
+        }
         generationIdRef.current = null;
         if (USE_MOCK) {
             import('../mock/mockApi').then(m => { m.resetMockCount(); m.resetModelCount(); });
@@ -356,11 +398,11 @@ export default function useGeneration({
             }
         }
 
-        const stored = localStorage.getItem('generateHistory');
+        const stored = localStorage.getItem(getHistoryKey());
         if (!stored) return;
         try {
             const history = JSON.parse(stored);
-            const index = history.findIndex(r => r.batchId === currentBatchId);
+            const index = history.findIndex(r => String(r.batchId) === String(currentBatchId));
             if (index !== -1) {
                 const batch = history[index];
                 if (!batch.models) batch.models = [];
@@ -369,15 +411,26 @@ export default function useGeneration({
                     modelThumbnail: modelUrl,
                     createdAt: new Date().toLocaleString(),
                 });
-                localStorage.setItem('generateHistory', JSON.stringify(history));
+                localStorage.setItem(getHistoryKey(), JSON.stringify(history));
             }
         } catch (e) {}
     }, [currentUser]);
 
     const handleLoadRecord = useCallback((batchRecord) => {
+        // 设置 DB generationId 以便后续追加变体
+        if (batchRecord.id) {
+            generationIdRef.current = batchRecord.id;
+        } else {
+            generationIdRef.current = null;
+        }
+
+        // 使用加载记录的 batchId，后续生成会合并到该记录中
+        batchIdRef.current = batchRecord.batchId;
+        console.log('🔄 handleLoadRecord: batchIdRef.current 已设置', { batchId: batchRecord.batchId, type: typeof batchRecord.batchId, variantCount: batchRecord.variants?.length });
+        // 保存原始草图数据，后续生成按 sketchData 合并到同一条记录
         if (batchRecord.sketchData || batchRecord.sketch_url) {
-            const sketchData = batchRecord.sketchData || batchRecord.sketch_url;
-            onUpdateSketchData(sketchData);
+            originalSketchRef.current = batchRecord.sketchData || batchRecord.sketch_url;
+            onUpdateSketchData(originalSketchRef.current);
             console.log('✅ 已加载草图');
         }
 
@@ -412,7 +465,6 @@ export default function useGeneration({
             }
         }
 
-        batchIdRef.current = Date.now();
     }, [onUpdateParams, onLoadExistingModels, onUpdateSketchData]);
 
     const handleDeleteVariant = useCallback((index) => {
@@ -427,14 +479,14 @@ export default function useGeneration({
         }
         const currentBatchId = batchIdRef.current;
         if (!currentBatchId) return;
-        const stored = localStorage.getItem('generateHistory');
+        const stored = localStorage.getItem(getHistoryKey());
         if (!stored) return;
         try {
             const history = JSON.parse(stored);
-            const batchIndex = history.findIndex(r => r.batchId === currentBatchId);
+            const batchIndex = history.findIndex(r => String(r.batchId) === String(currentBatchId));
             if (batchIndex !== -1) {
                 history[batchIndex].variants.splice(index, 1);
-                localStorage.setItem('generateHistory', JSON.stringify(history));
+                localStorage.setItem(getHistoryKey(), JSON.stringify(history));
             }
         } catch (e) {}
     }, [selectedVariantIndex]);
@@ -442,14 +494,14 @@ export default function useGeneration({
     const handleDeleteModelFromHistory = useCallback((index) => {
         const currentBatchId = batchIdRef.current;
         if (!currentBatchId) return;
-        const stored = localStorage.getItem('generateHistory');
+        const stored = localStorage.getItem(getHistoryKey());
         if (!stored) return;
         try {
             const history = JSON.parse(stored);
-            const batchIndex = history.findIndex(r => r.batchId === currentBatchId);
+            const batchIndex = history.findIndex(r => String(r.batchId) === String(currentBatchId));
             if (batchIndex !== -1 && history[batchIndex].models) {
                 history[batchIndex].models.splice(index, 1);
-                localStorage.setItem('generateHistory', JSON.stringify(history));
+                localStorage.setItem(getHistoryKey(), JSON.stringify(history));
             }
         } catch (e) {}
     }, []);

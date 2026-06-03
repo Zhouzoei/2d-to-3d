@@ -37,6 +37,8 @@ const AppContent = () => {
         handleSavePresets, handleCancelEdits,
         handleLoadRecord,
         handleCancelGeneration,
+        handleNewProject,
+        resetKey,
         setShowWelcome,
         setShowOnboarding,
     } = useAppState();
@@ -102,6 +104,13 @@ const AppContent = () => {
                         <div className="hero-header-row">
                             <div className="hero-header-side">
                                 <button
+                                    className="header-btn new-btn"
+                                    onClick={handleNewProject}
+                                    title="清空画布和生成结果，开始新创作"
+                                >
+                                    <span>新创作</span>
+                                </button>
+                                <button
                                     className="header-btn history-btn"
                                     onClick={() => setShowHistoryModal(true)}
                                 >
@@ -153,6 +162,7 @@ const AppContent = () => {
                                 <div className="card-content sketch-card-content">
                                     <div className="sketch-area-wrapper">
                                         <SketchCanvasNative 
+                                            key={resetKey}
                                             onSketchChange={handleSketchChange}
                                             sketchDataToLoad={sketchData}
                                         />

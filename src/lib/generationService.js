@@ -58,6 +58,33 @@ export const generationService = {
     }
   },
 
+  async addVariants(generationId, newVariants) {
+    try {
+      const { data: current, error: fetchError } = await supabase
+        .from('generations')
+        .select('variants')
+        .eq('id', generationId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const updatedVariants = [...(current.variants || []), ...newVariants];
+
+      const { data, error } = await supabase
+        .from('generations')
+        .update({ variants: updatedVariants })
+        .eq('id', generationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { success: true, data };
+    } catch (error) {
+      console.error('添加多个变体失败:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   async confirmVariant(generationId, variantIndex) {
     try {
       const { data, error } = await supabase

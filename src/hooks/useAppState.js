@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useUser } from '../UserContext';
 import useSketch from './useSketch';
 import useGeneration from './useGeneration';
 import use3D from './use3D';
 
 export default function useAppState() {
+    const [resetKey, setResetKey] = useState(0);
     const { currentUser, incrementGenCount } = useUser();
 
     const sketch = useSketch({
@@ -139,6 +141,18 @@ export default function useAppState() {
         handleCancelEdits: sketch.handleCancelEdits,
         handleLoadRecord: gen.handleLoadRecord,
         handleCancelGeneration: gen.handleCancelGeneration,
+        handleNewProject: () => {
+            setResetKey(k => k + 1);
+            sketch.setSketchData(null);
+            sketch.setPositivePrompt('');
+            sketch.setNegativePrompt('');
+            gen.clearGeneration();
+            model3d.clear3D();
+            if (localStorage.getItem('mock') === 'true') {
+                import('../mock/mockApi').then(m => { m.resetMockCount(); m.resetModelCount(); });
+            }
+        },
+        resetKey,
         setShowWelcome: sketch.setShowWelcome,
         setShowOnboarding: sketch.setShowOnboarding,
     };

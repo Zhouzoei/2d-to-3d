@@ -93,6 +93,25 @@ body {
   border-color: rgba(255, 255, 255, 0.9);
 }
 
+.new-btn {
+  padding: 6px 20px;
+  height: 54px;
+  background: rgba(224, 168, 212, 0.25);
+  border-color: rgba(248, 248, 248, 0.664);
+}
+
+.new-btn:hover {
+  background: rgba(250, 159, 250, 0.45);
+  border-color: rgba(247, 245, 244, 0.8);
+}
+
+.new-btn span {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1b;
+  letter-spacing: 1px;
+}
+
 .history-btn {
   padding: 6px 20px;
   height: 54px;
@@ -1944,6 +1963,16 @@ input[type="range"]::-moz-range-thumb {
     }
 
     .history-btn span {
+        font-size: 15px;
+    }
+
+    .new-btn {
+        padding: 5px 16px;
+        height: 40px;
+        min-width: 100px;
+    }
+
+    .new-btn span {
         font-size: 15px;
     }
 

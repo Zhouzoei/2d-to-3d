@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useUser } from './UserContext';
 import { generationService } from './lib/generationService';
+import { getHistoryKey } from './lib/storage';
 import './HistoryModal.css';
 
 function migrateOldRecord(record) {
@@ -63,6 +64,21 @@ function getTimeCategory(record) {
     return 'earlier';
 }
 
+function formatTime(isoStr) {
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${day} ${h}:${min}`;
+    } catch (e) {
+        return isoStr;
+    }
+}
+
 const TIME_FILTERS = [
     { key: 'all', label: '全部' },
     { key: 'today', label: '今天' },
@@ -83,7 +99,6 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const editInputRef = useRef(null);
     const clickTimerRef = useRef(null);
-    const lastLoadTimeRef = useRef(0);
     const { incrementFavCount, currentUser } = useUser();
 
     useEffect(() => {
@@ -91,14 +106,6 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
             setSearchText('');
             setPreviewRecord(null);
             setEditingRecordId(null);
-            
-            const now = Date.now();
-            const timeSinceLastLoad = now - lastLoadTimeRef.current;
-            
-            if (timeSinceLastLoad < 3000 && history.length > 0) {
-                console.log('📦 使用缓存的历史记录');
-                return;
-            }
             
             const loadHistory = async () => {
                 setIsLoadingHistory(true);
@@ -133,45 +140,70 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                             }));
                             records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                             setHistory(records);
-                            lastLoadTimeRef.current = now;
                             console.log(`✅ 已加载 ${records.length} 条历史记录`);
                         } else {
                             console.error('❌ 加载历史记录失败:', result.error);
                             setHistory([]);
                         }
                     } else {
-                        const stored = localStorage.getItem('generateHistory');
+                        const stored = localStorage.getItem(getHistoryKey());
                         if (stored) {
                             const records = JSON.parse(stored);
                             const migrated = records.map(migrateOldRecord);
-                            // 按 batchId 去重（保留最新的）+ 同 sketchData 合并变体
-                            const seenBatch = new Set();
-                            const mergedBySketch = new Map();
+                            // 按 batchId 合并变体（类型归一化），再按 sketchData 去重
+                            const mergedByBatch = new Map();
                             for (const r of migrated) {
-                                if (!seenBatch.has(r.batchId)) {
-                                    seenBatch.add(r.batchId);
-                                    const key = r.sketchData || `__noid_${r.batchId}`;
-                                    if (mergedBySketch.has(key)) {
-                                        const existing = mergedBySketch.get(key);
-                                        const existingUrls = new Set(existing.variants.map(v => v.fullImage));
-                                        for (const v of r.variants) {
-                                            if (!existingUrls.has(v.fullImage)) {
-                                                existing.variants.push(v);
-                                                existingUrls.add(v.fullImage);
-                                            }
+                                const batchKey = String(r.batchId);
+                                if (mergedByBatch.has(batchKey)) {
+                                    // 同 batchId 的记录合并变体和模型（处理历史遗留的重复记录）
+                                    const existing = mergedByBatch.get(batchKey);
+                                    const existingUrls = new Set(existing.variants.map(v => v.fullImage));
+                                    for (const v of r.variants) {
+                                        if (!existingUrls.has(v.fullImage)) {
+                                            existing.variants.push(v);
+                                            existingUrls.add(v.fullImage);
                                         }
-                                        if (r.models) {
-                                            for (const m of r.models) existing.models.push(m);
-                                        }
-                                    } else {
-                                        mergedBySketch.set(key, { ...r, variants: [...r.variants] });
                                     }
+                                    for (const m of r.models || []) {
+                                        if (!existing.models.some(em => em.modelUrl === m.modelUrl)) {
+                                            existing.models.push(m);
+                                        }
+                                    }
+                                    // 保留最新的 createdAt
+                                    if (new Date(r.createdAt) > new Date(existing.createdAt)) {
+                                        existing.createdAt = r.createdAt;
+                                    }
+                                } else {
+                                    mergedByBatch.set(batchKey, { ...r, variants: [...(r.variants || [])], models: [...(r.models || [])] });
+                                }
+                            }
+                            // 再按 sketchData 合并（同一草图多个 batch 合并）
+                            const mergedBySketch = new Map();
+                            for (const r of mergedByBatch.values()) {
+                                const key = r.sketchData || `__noid_${r.batchId}`;
+                                if (mergedBySketch.has(key)) {
+                                    const existing = mergedBySketch.get(key);
+                                    const existingUrls = new Set(existing.variants.map(v => v.fullImage));
+                                    for (const v of r.variants) {
+                                        if (!existingUrls.has(v.fullImage)) {
+                                            existing.variants.push(v);
+                                            existingUrls.add(v.fullImage);
+                                        }
+                                    }
+                                    for (const m of r.models || []) {
+                                        if (!existing.models.some(em => em.modelUrl === m.modelUrl)) {
+                                            existing.models.push(m);
+                                        }
+                                    }
+                                } else {
+                                    mergedBySketch.set(key, { ...r, variants: [...r.variants], models: [...(r.models || [])] });
                                 }
                             }
                             const cleaned = Array.from(mergedBySketch.values());
-                            cleaned.sort((a, b) => b.batchId - a.batchId);
+                            cleaned.sort((a, b) => String(b.batchId).localeCompare(String(a.batchId)) || Number(b.batchId) - Number(a.batchId));
+                            console.log('📜 HistoryModal 加载完成', cleaned.map(r => ({ batchId: r.batchId, type: typeof r.batchId, vcount: r.variants.length })));
                             // 回写清理后的数据
-                            localStorage.setItem('generateHistory', JSON.stringify(cleaned));
+                            localStorage.setItem(getHistoryKey(), JSON.stringify(cleaned));
                             setHistory(cleaned);
                         } else {
                             setHistory([]);
@@ -193,12 +225,34 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         }
     }, [editingRecordId]);
 
+    // 去重后的历史记录数量（用于标签显示）
+    const uniqueCount = useMemo(() => {
+        const seen = new Set();
+        return history.filter(r => {
+            const key = String(r.batchId);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).length;
+    }, [history]);
+
+    const uniqueFavCount = useMemo(() => {
+        const seen = new Set();
+        return history.filter(r => {
+            const key = String(r.batchId);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return r.isFavorite;
+        }).length;
+    }, [history]);
+
     const displayHistory = useMemo(() => {
         // 最终去重：确保同一 batchId 不会出现两次
         const seen = new Set();
         const deduped = history.filter(r => {
-            if (seen.has(r.batchId)) return false;
-            seen.add(r.batchId);
+            const key = String(r.batchId);
+            if (seen.has(key)) return false;
+            seen.add(key);
             return true;
         });
 
@@ -223,13 +277,13 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     }, [history, filter, timeFilter, searchText]);
 
     const persistHistory = (newHistory) => {
-        localStorage.setItem('generateHistory', JSON.stringify(newHistory));
+        localStorage.setItem(getHistoryKey(), JSON.stringify(newHistory));
     };
 
     const handleDelete = async (batchId, e) => {
         e.stopPropagation();
         
-        const recordToDelete = history.find(record => record.batchId === batchId);
+        const recordToDelete = history.find(record => String(record.batchId) === String(batchId));
         
         if (recordToDelete?.id && currentUser?.id) {
             try {
@@ -245,10 +299,10 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
             }
         }
         
-        const newHistory = history.filter(record => record.batchId !== batchId);
+        const newHistory = history.filter(record => String(record.batchId) !== String(batchId));
         setHistory(newHistory);
         persistHistory(newHistory);
-        if (previewRecord && previewRecord.batchId === batchId) {
+        if (previewRecord && String(previewRecord.batchId) === String(batchId)) {
             setPreviewRecord(null);
         }
     };
@@ -256,7 +310,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const handleFavorite = (batchId, e) => {
         e.stopPropagation();
         const newHistory = history.map(record => {
-            if (record.batchId === batchId) {
+            if (String(record.batchId) === String(batchId)) {
                 const newFav = !record.isFavorite;
                 if (newFav && incrementFavCount) incrementFavCount();
                 return { ...record, isFavorite: newFav };
@@ -265,7 +319,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
         });
         setHistory(newHistory);
         persistHistory(newHistory);
-        if (previewRecord && previewRecord.batchId === batchId) {
+        if (previewRecord && String(previewRecord.batchId) === String(batchId)) {
             setPreviewRecord(prev => ({ ...prev, isFavorite: !prev.isFavorite }));
         }
     };
@@ -290,22 +344,28 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     };
 
     const confirmClearAll = async () => {
-        if (currentUser?.id && history.length > 0) {
-            try {
-                console.log('🗑️ 清空所有数据库记录...');
-                const deletePromises = history
-                    .filter(record => record.id)
-                    .map(record => generationService.deleteGeneration(record.id));
-                
-                const results = await Promise.all(deletePromises);
-                const successCount = results.filter(r => r.success).length;
-                console.log(`✅ 已从数据库删除 ${successCount} 条记录`);
-            } catch (error) {
-                console.error('清空数据库记录失败:', error);
-            }
+        if (!currentUser?.id) {
+            // 未登录时只清当前浏览器的 localStorage key
+            localStorage.removeItem(getHistoryKey());
+            setHistory([]);
+            setShowClearConfirm(false);
+            setPreviewRecord(null);
+            return;
+        }
+        try {
+            console.log('🗑️ 清空所有数据库记录...');
+            const deletePromises = history
+                .filter(record => record.id)
+                .map(record => generationService.deleteGeneration(record.id));
+            
+            const results = await Promise.all(deletePromises);
+            const successCount = results.filter(r => r.success).length;
+            console.log(`✅ 已从数据库删除 ${successCount} 条记录`);
+        } catch (error) {
+            console.error('清空数据库记录失败:', error);
         }
         
-        localStorage.removeItem('generateHistory');
+        localStorage.removeItem(getHistoryKey());
         setHistory([]);
         setShowClearConfirm(false);
         setPreviewRecord(null);
@@ -324,14 +384,14 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
     const handleRenameSubmit = () => {
         if (editingRecordId === null) return;
         const newHistory = history.map(record => {
-            if (record.batchId === editingRecordId) {
+            if (String(record.batchId) === String(editingRecordId)) {
                 return { ...record, customName: editName.trim() || '' };
             }
             return record;
         });
         setHistory(newHistory);
         persistHistory(newHistory);
-        if (previewRecord && previewRecord.batchId === editingRecordId) {
+        if (previewRecord && String(previewRecord.batchId) === String(editingRecordId)) {
             setPreviewRecord(prev => ({ ...prev, customName: editName.trim() || '' }));
         }
         setEditingRecordId(null);
@@ -371,11 +431,11 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                 <button
                                     className={`history-tab ${filter === 'all' ? 'active' : ''}`}
                                     onClick={() => setFilter('all')}
-                                >全部 ({history.length})</button>
+                                >全部 ({uniqueCount})</button>
                                 <button
                                     className={`history-tab ${filter === 'favorite' ? 'active' : ''}`}
                                     onClick={() => setFilter('favorite')}
-                                >收藏 ({history.filter(r => r.isFavorite).length})</button>
+                                >收藏 ({uniqueFavCount})</button>
                             </div>
                             <select
                                 className="history-time-select"
@@ -455,7 +515,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                                 title="双击重命名"
                                             >{displayName(record)}</span>
                                         )}
-                                        <span className="history-card-time">{record.createdAt}</span>
+                                        <span className="history-card-time">{formatTime(record.createdAt)}</span>
                                         <span className="history-card-badge-combo">
                                             2D × {variantCount}{modelCount > 0 ? ` · 3D × ${modelCount}` : ''}
                                         </span>
@@ -485,7 +545,7 @@ const HistoryModal = ({ isOpen, onClose, onLoadRecord }) => {
                                     <div className="preview-info">
                                         <div className="preview-info-row">
                                             <span className="preview-info-label">创建时间</span>
-                                            <span className="preview-info-value">{previewRecord.createdAt}</span>
+                                            <span className="preview-info-value">{formatTime(previewRecord.createdAt)}</span>
                                         </div>
                                         <div className="preview-info-row">
                                             <span className="preview-info-label">风格</span>

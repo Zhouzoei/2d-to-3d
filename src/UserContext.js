@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from './lib/supabase';
+import { getHistoryKey } from './lib/storage';
 
 const UserContext = createContext();
 
@@ -240,7 +241,7 @@ export const UserProvider = ({ children }) => {
     const getUserStats = () => {
         if (currentUser) {
             const stats = userStats[currentUser.email] || { genCount: 0, favCount: 0, streak: 0, lastActiveDate: null, avatar: null };
-            const stored = localStorage.getItem('generateHistory');
+            const stored = localStorage.getItem(getHistoryKey());
             let realFavCount = 0;
             const styleDistribution = {};
             let recentActivity = [];
