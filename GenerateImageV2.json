@@ -1,0 +1,1144 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 439677856889141,
+      "steps": 30,
+      "cfg": 1.5,
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "linear_quadratic",
+      "denoise": 0.5,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "13",
+        0
+      ],
+      "negative": [
+        "13",
+        1
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "dreamshaperXL_lightningDPMSDE.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Checkpoint加载器（简易）"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 768,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "高质量，高清，超凡细节，一个小男孩，穿着斗篷\n，动漫风格",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "text, watermark,",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "11": {
+    "inputs": {
+      "preprocessor": "LineartStandardPreprocessor",
+      "resolution": 512,
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "AIO_Preprocessor",
+    "_meta": {
+      "title": "AIO Aux Preprocessor"
+    }
+  },
+  "12": {
+    "inputs": {
+      "image": "屏幕截图 2026-05-29 135539.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "加载图像"
+    }
+  },
+  "13": {
+    "inputs": {
+      "strength": 0.6,
+      "start_percent": 0,
+      "end_percent": 0.842,
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "control_net": [
+        "16",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ],
+      "image": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ControlNetApplySD3",
+    "_meta": {
+      "title": "应用ControlNet"
+    }
+  },
+  "14": {
+    "inputs": {
+      "control_net_name": "controlnet_union_sdxl_10_promax.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "加载ControlNet模型"
+    }
+  },
+  "15": {
+    "inputs": {
+      "images": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "预览图像"
+    }
+  },
+  "16": {
+    "inputs": {
+      "type": "canny/lineart/anime_lineart/mlsd",
+      "control_net": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "SetUnionControlNetType",
+    "_meta": {
+      "title": "设置UnionControlNet类型"
+    }
+  },
+  "30": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "31": {
+    "inputs": {
+      "samples": [
+        "38",
+        0
+      ],
+      "vae": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "32": {
+    "inputs": {
+      "unet_name": "qwen-image-edit/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "33": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "34": {
+    "inputs": {
+      "clip_name": "qwen/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "35": {
+    "inputs": {
+      "lora_name": "Qwen-Image-Lightning-4steps-V2.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "36": {
+    "inputs": {
+      "shift": 1.73,
+      "model": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "37": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "CFGNorm",
+    "_meta": {
+      "title": "CFG归一化"
+    }
+  },
+  "38": {
+    "inputs": {
+      "seed": 584093556704129,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "37",
+        0
+      ],
+      "positive": [
+        "39",
+        0
+      ],
+      "negative": [
+        "40",
+        0
+      ],
+      "latent_image": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "39": {
+    "inputs": {
+      "prompt": "Move the camera to the front-facing position so that the character's full body is visible.The character is centered in the frame, with the full body visible from head to toe. When the character is standing, the arms should be extended slightly downwards and kept close to the thighs, maintaining even balance on both sides of the body.The character maintains a natural full-body proportion of 4:6, with the clothing lying flat and draping naturally. The background should be pure white.",
+      "clip": [
+        "34",
+        0
+      ],
+      "vae": [
+        "33",
+        0
+      ],
+      "image1": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "40": {
+    "inputs": {
+      "prompt": "Half-body portrait, no imagery from the lower legs down, not a full-body image.",
+      "clip": [
+        "34",
+        0
+      ],
+      "vae": [
+        "33",
+        0
+      ],
+      "image1": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "42": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": 2,
+      "image": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "缩放图像（比例）"
+    }
+  },
+  "44": {
+    "inputs": {
+      "width": 1080,
+      "height": 1920,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "58": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "59": {
+    "inputs": {
+      "unet_name": "qwen-image-edit/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "60": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "61": {
+    "inputs": {
+      "clip_name": "qwen/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "62": {
+    "inputs": {
+      "lora_name": "Qwen-Image-Lightning-4steps-V2.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "63": {
+    "inputs": {
+      "shift": 1.73,
+      "model": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "64": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "CFGNorm",
+    "_meta": {
+      "title": "CFG归一化"
+    }
+  },
+  "65": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": 2,
+      "image": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "缩放图像（比例）"
+    }
+  },
+  "66": {
+    "inputs": {
+      "width": 1080,
+      "height": 1920,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "67": {
+    "inputs": {
+      "prompt": "Half-body portrait, no imagery from the lower legs down, not a full-body image.",
+      "clip": [
+        "61",
+        0
+      ],
+      "vae": [
+        "60",
+        0
+      ],
+      "image1": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "68": {
+    "inputs": {
+      "samples": [
+        "70",
+        0
+      ],
+      "vae": [
+        "60",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "69": {
+    "inputs": {
+      "prompt": "Move the camera to a position where the character's full body is visible with their back facing the screen. The character is centered in the frame, with the full body visible from head to toe. When the character is standing, the arms should be extended slightly downwards and kept close to the thighs, maintaining even balance on both sides of the body. The character maintains a natural full-body proportion of 4:6, with the clothing lying flat and draping naturally. The background should be pure white.",
+      "clip": [
+        "61",
+        0
+      ],
+      "vae": [
+        "60",
+        0
+      ],
+      "image1": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "70": {
+    "inputs": {
+      "seed": 4949060792105,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "64",
+        0
+      ],
+      "positive": [
+        "69",
+        0
+      ],
+      "negative": [
+        "67",
+        0
+      ],
+      "latent_image": [
+        "66",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "71": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "72": {
+    "inputs": {
+      "clip_name": "qwen/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "73": {
+    "inputs": {
+      "lora_name": "Qwen-Image-Lightning-4steps-V2.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "74": {
+    "inputs": {
+      "shift": 1.73,
+      "model": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "75": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "CFGNorm",
+    "_meta": {
+      "title": "CFG归一化"
+    }
+  },
+  "76": {
+    "inputs": {
+      "width": 1080,
+      "height": 1920,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "77": {
+    "inputs": {
+      "prompt": "Half-body portrait, no imagery from the lower legs down, not a full-body image.",
+      "clip": [
+        "72",
+        0
+      ],
+      "vae": [
+        "71",
+        0
+      ],
+      "image1": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "78": {
+    "inputs": {
+      "samples": [
+        "79",
+        0
+      ],
+      "vae": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "79": {
+    "inputs": {
+      "seed": 473484166122108,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "75",
+        0
+      ],
+      "positive": [
+        "81",
+        0
+      ],
+      "negative": [
+        "77",
+        0
+      ],
+      "latent_image": [
+        "76",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "80": {
+    "inputs": {
+      "unet_name": "qwen-image-edit/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "81": {
+    "inputs": {
+      "prompt": "Move the camera to a position where the character's full body is visible from a side view, with the character centered in the frame and showing the entire figure from head to toe. When the character is standing, the arms are extended slightly downwards and kept close to the thighs, maintaining even balance on both sides of the body. The character has natural full-body proportions of 4:6, with the clothing lying flat and draping naturally. The background is pure white.",
+      "clip": [
+        "72",
+        0
+      ],
+      "vae": [
+        "71",
+        0
+      ],
+      "image1": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "文本编码（QwenImageEditPlus）"
+    }
+  },
+  "82": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "scale_by": 2,
+      "image": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "缩放图像（比例）"
+    }
+  },
+  "83": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "84": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "102",
+        0
+      ],
+      "positive": [
+        "104",
+        0
+      ],
+      "negative": [
+        "86",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG引导器"
+    }
+  },
+  "85": {
+    "inputs": {
+      "noise_seed": [
+        "92",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "随机噪波"
+    }
+  },
+  "86": {
+    "inputs": {
+      "conditioning": [
+        "105",
+        0
+      ],
+      "latent": [
+        "98",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "参考Latent"
+    }
+  },
+  "87": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "88": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1.5,
+      "resolution_steps": 1,
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "缩放图像（像素）"
+    }
+  },
+  "89": {
+    "inputs": {
+      "steps": 5,
+      "width": [
+        "94",
+        0
+      ],
+      "height": [
+        "94",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2调度器"
+    }
+  },
+  "90": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "K采样器选择"
+    }
+  },
+  "91": {
+    "inputs": {
+      "width": [
+        "94",
+        0
+      ],
+      "height": [
+        "94",
+        1
+      ],
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad_edge_pixel",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "92": {
+    "inputs": {
+      "seed": -1
+    },
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "随机种子"
+    }
+  },
+  "94": {
+    "inputs": {
+      "image": [
+        "88",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "获取图像尺寸"
+    }
+  },
+  "95": {
+    "inputs": {
+      "method": "mkl",
+      "strength": 0.6,
+      "multithread": true,
+      "image_ref": [
+        "88",
+        0
+      ],
+      "image_target": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "ColorMatch",
+    "_meta": {
+      "title": "Color Match"
+    }
+  },
+  "96": {
+    "inputs": {
+      "width": [
+        "94",
+        0
+      ],
+      "height": [
+        "94",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "空Latent图像（Flux2）"
+    }
+  },
+  "97": {
+    "inputs": {
+      "noise": [
+        "85",
+        0
+      ],
+      "guider": [
+        "84",
+        0
+      ],
+      "sampler": [
+        "90",
+        0
+      ],
+      "sigmas": [
+        "89",
+        0
+      ],
+      "latent_image": [
+        "96",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "自定义采样器（高级）"
+    }
+  },
+  "98": {
+    "inputs": {
+      "pixels": [
+        "88",
+        0
+      ],
+      "vae": [
+        "87",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE编码"
+    }
+  },
+  "99": {
+    "inputs": {
+      "purge_cache": true,
+      "purge_models": true,
+      "anything": [
+        "97",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: PurgeVRAM V2",
+    "_meta": {
+      "title": "图层工具：清除VRAM V2"
+    }
+  },
+  "100": {
+    "inputs": {
+      "samples": [
+        "99",
+        0
+      ],
+      "vae": [
+        "87",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "101": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "102": {
+    "inputs": {
+      "lora_name": "flux2_berthe_morisot.safetensors",
+      "strength_model": 0.6,
+      "model": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "103": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "104": {
+    "inputs": {
+      "conditioning": [
+        "107",
+        0
+      ],
+      "latent": [
+        "98",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "参考Latent"
+    }
+  },
+  "105": {
+    "inputs": {
+      "conditioning": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "106": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_nbjlb_00001_.png&type=temp&subfolder=&rand=0.5053393809582419"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_nbjlb_00002_.png&type=temp&subfolder=&rand=0.34564822445447774"
+          }
+        ]
+      },
+      "image_a": [
+        "8",
+        0
+      ],
+      "image_b": [
+        "91",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "图像对比"
+    }
+  },
+  "107": {
+    "inputs": {
+      "text": "anime style，将画面补充细节，修复画面，统一风格和完成度。超高清，极致细节，中对比度，清晰的光影细节，保持画面色调不变，4K画质。",
+      "clip": [
+        "103",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "108": {
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "预览图像"
+    }
+  }
+}

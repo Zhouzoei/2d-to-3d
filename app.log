@@ -1,0 +1,41 @@
+nohup: ignoring input
+2026-06-08 20:02:59,693 [INFO] 启动服务器: http://0.0.0.0:5050
+INFO:     Started server process [4298]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5050 (Press CTRL+C to quit)
+INFO:     127.0.0.1:40928 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46704 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46704 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42360 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42360 - "GET /api/health HTTP/1.1" 200 OK
+2026-06-08 20:04:24,523 [INFO] 图片已上传到 ComfyUI: /root/ComfyUI/input/web_upload_314430bb.png
+2026-06-08 20:04:24,524 [INFO] 正向提示词: 高质量，高清，超凡细节，动漫风格...
+2026-06-08 20:04:24,524 [INFO] 负向提示词: text, watermark,...
+2026-06-08 20:04:24,524 [INFO] ControlNet: strength=0.6, start=0.0, end=0.84
+2026-06-08 20:04:24,525 [INFO] KSampler(3): steps=30, cfg=1.5, denoise=0.5
+2026-06-08 20:04:24,554 [INFO] 工作流已提交: prompt_id=b0d3fe38-f2a1-490b-9908-6b0d2bdc58bb, task=314430bb
+INFO:     127.0.0.1:42352 - "POST /api/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42352 - "GET /api/output/314430bb_front_view.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49652 - "GET /api/output/314430bb_back_view.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49660 - "GET /api/output/314430bb_side_view.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37226 - "GET /api/output/314430bb_front_view.png HTTP/1.1" 200 OK
+2026-06-08 20:06:07,677 [INFO] 图片已上传到 ComfyUI: /root/ComfyUI/input/repaint_115e7d65_image.png
+2026-06-08 20:06:07,677 [INFO] 图片已上传到 ComfyUI: /root/ComfyUI/input/repaint_115e7d65_mask.png
+2026-06-08 20:06:07,677 [INFO] 重绘正向提示词: 蓝色帽子...
+2026-06-08 20:06:07,677 [INFO] 重绘负向提示词: ...
+2026-06-08 20:06:07,712 [INFO] 重绘工作流已提交: prompt_id=18fadcda-4cc6-46a5-92bd-30c1ac9a4963, task=115e7d65
+INFO:     127.0.0.1:52636 - "POST /api/repaint HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52636 - "GET /api/output/repaint_115e7d65_refined.png HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60506 - "GET /api/output/repaint_115e7d65_refined.png HTTP/1.1" 200 OK
+2026-06-08 20:09:39,098 [INFO] 图片已上传到 ComfyUI: /root/ComfyUI/input/repaint_c91f2ce8_image.png
+2026-06-08 20:09:39,098 [INFO] 图片已上传到 ComfyUI: /root/ComfyUI/input/repaint_c91f2ce8_mask.png
+2026-06-08 20:09:39,098 [INFO] 重绘正向提示词: 怪物...
+2026-06-08 20:09:39,098 [INFO] 重绘负向提示词: ...
+2026-06-08 20:09:39,133 [INFO] 重绘工作流已提交: prompt_id=3b78f120-ad20-4be5-86a7-7ff7b70520e5, task=c91f2ce8
+INFO:     127.0.0.1:43130 - "POST /api/repaint HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43130 - "GET /api/output/repaint_c91f2ce8_refined.png HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [4298]

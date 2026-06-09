@@ -1,0 +1,540 @@
+{
+  "1": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "19",
+        0
+      ],
+      "positive": [
+        "21",
+        0
+      ],
+      "negative": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG引导器"
+    }
+  },
+  "2": {
+    "inputs": {
+      "noise_seed": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "随机噪波"
+    }
+  },
+  "3": {
+    "inputs": {
+      "conditioning": [
+        "22",
+        0
+      ],
+      "latent": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "参考Latent"
+    }
+  },
+  "4": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "5": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1.5,
+      "resolution_steps": 1,
+      "image": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "缩放图像（像素）"
+    }
+  },
+  "6": {
+    "inputs": {
+      "steps": 5,
+      "width": [
+        "11",
+        0
+      ],
+      "height": [
+        "11",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2调度器"
+    }
+  },
+  "7": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "K采样器选择"
+    }
+  },
+  "8": {
+    "inputs": {
+      "width": [
+        "11",
+        0
+      ],
+      "height": [
+        "11",
+        1
+      ],
+      "upscale_method": "lanczos",
+      "keep_proportion": "pad_edge_pixel",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "9": {
+    "inputs": {
+      "seed": -1
+    },
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "随机种子"
+    }
+  },
+  "10": {
+    "inputs": {
+      "filename_prefix": "F2K_放大-20260608192613",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "获取图像尺寸"
+    }
+  },
+  "12": {
+    "inputs": {
+      "method": "mkl",
+      "strength": 0.6,
+      "multithread": true,
+      "image_ref": [
+        "5",
+        0
+      ],
+      "image_target": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "ColorMatch",
+    "_meta": {
+      "title": "Color Match"
+    }
+  },
+  "13": {
+    "inputs": {
+      "width": [
+        "11",
+        0
+      ],
+      "height": [
+        "11",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "空Latent图像（Flux2）"
+    }
+  },
+  "14": {
+    "inputs": {
+      "noise": [
+        "2",
+        0
+      ],
+      "guider": [
+        "1",
+        0
+      ],
+      "sampler": [
+        "7",
+        0
+      ],
+      "sigmas": [
+        "6",
+        0
+      ],
+      "latent_image": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "自定义采样器（高级）"
+    }
+  },
+  "15": {
+    "inputs": {
+      "pixels": [
+        "5",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE编码"
+    }
+  },
+  "16": {
+    "inputs": {
+      "purge_cache": true,
+      "purge_models": true,
+      "anything": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "LayerUtility: PurgeVRAM V2",
+    "_meta": {
+      "title": "图层工具：清除VRAM V2"
+    }
+  },
+  "17": {
+    "inputs": {
+      "samples": [
+        "16",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "18": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "19": {
+    "inputs": {
+      "lora_name": "flux2_berthe_morisot.safetensors",
+      "strength_model": 0.6,
+      "model": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA加载器（仅模型）"
+    }
+  },
+  "20": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "21": {
+    "inputs": {
+      "conditioning": [
+        "34",
+        0
+      ],
+      "latent": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "参考Latent"
+    }
+  },
+  "22": {
+    "inputs": {
+      "conditioning": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "23": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "30",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "24": {
+    "inputs": {
+      "control_net_name": "EcomXL_controlnet_inpaint.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "加载ControlNet模型"
+    }
+  },
+  "25": {
+    "inputs": {
+      "black_pixel_for_xinsir_cn": false,
+      "image": [
+        "27",
+        0
+      ],
+      "mask": [
+        "27",
+        1
+      ]
+    },
+    "class_type": "InpaintPreprocessor",
+    "_meta": {
+      "title": "Inpaint内补重绘预处理器"
+    }
+  },
+  "26": {
+    "inputs": {
+      "strength": 1,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": [
+        "29",
+        0
+      ],
+      "negative": [
+        "23",
+        0
+      ],
+      "control_net": [
+        "24",
+        0
+      ],
+      "image": [
+        "25",
+        0
+      ],
+      "vae": [
+        "30",
+        2
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "应用ControlNet（旧版高级）"
+    }
+  },
+  "27": {
+    "inputs": {
+      "image": "clipspace/clipspace-painted-masked-1780455261051.png [input]"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "加载图像"
+    }
+  },
+  "28": {
+    "inputs": {
+      "pixels": [
+        "27",
+        0
+      ],
+      "vae": [
+        "30",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE编码"
+    }
+  },
+  "29": {
+    "inputs": {
+      "text": "A blue witch hat, with many layers of lace inside, and a star pendant at the tip",
+      "clip": [
+        "30",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "30": {
+    "inputs": {
+      "ckpt_name": "dreamshaperXL_lightningDPMSDE.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Checkpoint加载器（简易）"
+    }
+  },
+  "31": {
+    "inputs": {
+      "seed": 165048377589441,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "30",
+        0
+      ],
+      "positive": [
+        "26",
+        0
+      ],
+      "negative": [
+        "26",
+        1
+      ],
+      "latent_image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "32": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_cfbxc_00011_.png&type=temp&subfolder=&rand=0.44419314196732895"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_cfbxc_00012_.png&type=temp&subfolder=&rand=0.17241251507164335"
+          }
+        ]
+      },
+      "image_a": [
+        "33",
+        0
+      ],
+      "image_b": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "图像对比"
+    }
+  },
+  "33": {
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "30",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "34": {
+    "inputs": {
+      "text": "anime style，将画面补充细节，修复画面，统一风格和完成度。超高清，极致细节，中对比度，清晰的光影细节，保持画面色调不变，4K画质。",
+      "clip": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  }
+}
